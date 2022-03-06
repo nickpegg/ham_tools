@@ -9,6 +9,8 @@ from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 
 from serial import Serial
+from serial.tools.list_ports import grep as grep_ports
+from serial.tools.list_ports_common import ListPortInfo
 
 DEFAULT_PORT = "/dev/ttyUSB0"
 DEFAULT_BAUD = 4800
@@ -65,36 +67,59 @@ class Memory:
 def main():
     args = parse_args()
 
-    port = Serial(args.port, args.baud)
-
-    if args.thing == "memory":
-        if args.action == "read":
-            read_memory(port)
+    try:
+        if args.action == "discover":
+            print(discover().device)
+        else:
+            with Serial(args.port, baudrate=args.baud, timeout=0.25) as port:
+                if args.action == "read":
+                    if args.thing == "memory":
+                        read_memory(port)
+    except Exception as e:
+        if not args.v:
+            print(e)
+        else:
+            raise
 
 
 def parse_args() -> Namespace:
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--port",
+        "-v",
+        help="Verbose mode",
+        action="store_true",
+    )
+    parser.add_argument(
         "-p",
+        "--port",
         help=f"Serial port to connect to, default: {DEFAULT_PORT}",
         default=DEFAULT_PORT,
     )
     parser.add_argument(
-        "--baud",
         "-b",
+        "--baud",
         help=f"Serial baud rate, default: {DEFAULT_BAUD}",
         default=DEFAULT_BAUD,
     )
 
     # TODO: make these subcommands instead of verb, noun
     # TODO: filename flag
-    parser.add_argument("action", choices=("read", "write"))
-    parser.add_argument("thing", choices=("memory", "menu"))
+    parser.add_argument("action", choices=("read", "write", "discover"))
+    parser.add_argument("thing", choices=("memory", "menu"), nargs="?")
     return parser.parse_args()
 
 
-def read_memory(port: Serial):
+def discover() -> ListPortInfo:
+    """
+    Find an FT-991a on one of the serial ports
+    """
+    ports = list(grep_ports("CP2105.+Enhanced"))
+    if len(ports) == 0:
+        raise RuntimeError("Unable to discover FT-991a serial port. Is it plugged in?")
+    return ports[0]
+
+
+def read_memory(port: Serial) -> None:
     """
     Read all memory from radio and dump to a CSV file.
 
