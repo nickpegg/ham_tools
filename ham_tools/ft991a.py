@@ -5,15 +5,16 @@ CAT serial protocol.
 
 import re
 from csv import DictReader, DictWriter
+from enum import Enum
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 
-from serial import Serial
+from serial import Serial, SerialException
 from serial.tools.list_ports import grep as grep_ports
 from serial.tools.list_ports_common import ListPortInfo
 
 DEFAULT_PORT = "/dev/ttyUSB0"
-DEFAULT_BAUD = 4800
+DEFAULT_BAUD = 38400
 
 # How many memory channels are there
 #
@@ -39,7 +40,8 @@ MT_RE = (
     #       D=AM-N E=C4FM
     r"(?P<mode>\w)"
     # 0=VFO 1=Memory - ???
-    r"(?P<vfo_memory>\d)"
+    # r"(?P<vfo_memory>\d)"
+    r"\d"
     # Squelch mode: 0=off 1=CTCSS TX/RX, 2=CTCSS TX
     #               3=DCS TX/RX, 4=DCS TX
     r"(?P<sql_mode>\d)"
@@ -50,28 +52,111 @@ MT_RE = (
 )
 
 
+class Mode(Enum):
+    AM_N = 13
+    LSB = 1
+    USB = 2
+    CW = 3
+    CW_R = 7
+
+    RTTY_LSB = 6
+    RTTY_USB = 9
+    DATA_LSB = 8
+    DATA_USB = 12
+    DATA_FM = 10
+
+    FM = 4
+    FM_N = 11
+    C4FM = 14
+
+
+class SquelchMode(Enum):
+    OFF = 0
+    CTCSS_RX_TX = 1
+    CTCSS_TX = 2
+    DCS_RX_TX = 3
+    DCS_TX = 4
+
+
+class RepeaterShift(Enum):
+    SIMPLEX = 0
+    PLUS = 1
+    MINUS = 2
+
+
 @dataclass
 class Memory:
-    # TODO: Translate text from regex into typed data
+    channel: int
+    frequency_hz: int
+    clarifier_direction: str
+    clarifier_offset_hz: int
+    clarifier_rx: bool
+    clarifier_tx: bool
+    mode: Mode
+    squelch_mode: SquelchMode
+    repeater_shift: RepeaterShift
+    tag: str
+
     @classmethod
-    def from_mt(cls, line: bytes) -> "Memory":
+    def from_mt(cls, channel: int, line: bytes) -> "Memory":
+        """
+        Parse from a MT answer
+        """
         match = re.match(MT_RE, line.decode())
         if not match:
             raise ValueError(f"Unable to parse line: {line.decode()}")
 
-        # TODO: return a real Memory object
-        print(match.groups())
-        return cls()
+        return cls(
+            channel=channel,
+            frequency_hz=int(match.group("freq")),
+            clarifier_direction=match.group("clar_dir"),
+            clarifier_offset_hz=int(match.group("clar_offset")),
+            clarifier_rx=bool(int(match.group("clar_rx"))),
+            clarifier_tx=bool(int(match.group("clar_tx"))),
+            mode=Mode(int(match.group("mode"), base=16)),
+            squelch_mode=SquelchMode(int(match.group("sql_mode"))),
+            repeater_shift=RepeaterShift(int(match.group("shift"))),
+            tag=match.group("tag").strip(),
+        )
+
+    def to_mt(self) -> bytes:
+        """
+        Turn into an MT command we can send to the serial port
+        """
+        # TODO: write a test for this
+        buf = f"MT{self.channel:03d}"
+        buf += f"{self.frequency_hz:09d}"
+        buf += self.clarifier_direction
+        buf += f"{self.clarifier_offset_hz:04d}"
+        buf += str(int(self.clarifier_rx))
+        buf += str(int(self.clarifier_tx))
+        buf += f"{self.mode.value:x}".upper()
+        buf += "0"
+        buf += str(self.squelch_mode.value)
+        buf += "00"
+        buf += str(self.repeater_shift.value)
+        buf += "0"
+        buf += self.tag[:12].ljust(12)
+        buf += ";"
+
+        return buf.encode()
 
 
-def main():
+def main() -> None:
     args = parse_args()
 
     try:
         if args.action == "discover":
             print(discover().device)
         else:
-            with Serial(args.port, baudrate=args.baud, timeout=0.25) as port:
+            try:
+                port = Serial(args.port, baudrate=args.baud, timeout=0.25)
+            except SerialException as e:
+                raise RuntimeError(
+                    f"Could not open {args.port}. Is the radio plugged in and powered "
+                    "on?"
+                )
+            with port:
                 if args.action == "read":
                     if args.thing == "memory":
                         read_memory(port)
@@ -128,6 +213,8 @@ def read_memory(port: Serial) -> None:
     # TODO: read CTCSS freq or DCS code - the MT command includes the mode but not the
     # value, so we might have to tune to that channel and read it from CAT
 
+    memories = []
+
     # Fetch memory channels from radio
     for chan in range(1, MEMORY_CHANNELS + 1):
         cmd = f"MT{chan:03d};"
@@ -136,11 +223,10 @@ def read_memory(port: Serial) -> None:
         if result == b"?;":
             continue
 
-        print(cmd)
-        print(result.decode())
-
-        # parse each one
-        Memory.from_mt(result)
+        print(result)
+        mem = Memory.from_mt(chan, result)
+        memories.append(mem)
+        print(mem)
 
     # Dump to CSV file
 
