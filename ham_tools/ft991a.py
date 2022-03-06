@@ -3,7 +3,9 @@ Simple tool for reading/writing memory and menu settings from a Yaesu FT-991a ov
 CAT serial protocol.
 """
 
+import sys
 import re
+
 from csv import DictReader, DictWriter
 from enum import Enum
 from argparse import ArgumentParser, Namespace
@@ -156,8 +158,11 @@ def main() -> None:
                     f"Could not open {args.port}. Is the radio plugged in and powered "
                     "on?"
                 )
+
             with port:
-                if args.action == "read":
+                if args.action == "shell":
+                    repl(port)
+                elif args.action == "read":
                     if args.thing == "memory":
                         read_memory(port)
     except Exception as e:
@@ -189,7 +194,7 @@ def parse_args() -> Namespace:
 
     # TODO: make these subcommands instead of verb, noun
     # TODO: filename flag
-    parser.add_argument("action", choices=("read", "write", "discover"))
+    parser.add_argument("action", choices=("read", "write", "discover", "shell"))
     parser.add_argument("thing", choices=("memory", "menu"), nargs="?")
     return parser.parse_args()
 
@@ -202,6 +207,22 @@ def discover() -> ListPortInfo:
     if len(ports) == 0:
         raise RuntimeError("Unable to discover FT-991a serial port. Is it plugged in?")
     return ports[0]
+
+
+def repl(port: Serial) -> None:
+    """
+    Enter a REPL shell with the radio
+    """
+    print("Press Enter or Ctrl-D to quit")
+    while True:
+        cmd = input(">>> ").rstrip()
+        if cmd == "":
+            break
+
+        if not cmd.endswith(";"):
+            cmd += ";"
+        port.write(cmd.encode())
+        print(port.read_until(b";").decode())
 
 
 def read_memory(port: Serial) -> None:
