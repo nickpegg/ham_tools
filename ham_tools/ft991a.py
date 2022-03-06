@@ -24,7 +24,7 @@ MEMORY_CHANNELS = 117
 # Regex for parsing the answer of MT commands
 MT_RE = (
     r"MT\d{3}"
-    # frequencxy in Hz
+    # frequency in Hz
     r"(?P<freq>\d{9})"
     # Clarifier direction, + or -
     r"(?P<clar_dir>[\-\+])"
