@@ -21,20 +21,30 @@ MEMORY_CHANNELS = 117
 
 # Regex for parsing the answer of MT commands
 MT_RE = (
-    r'MT\d{3}'
-    r'(?P<freq>\d{9})'          # frequency in Hz
-    r'(?P<clar_dir>[\-\+])'     # Clarifier direction, + or -
-    r'(?P<clar_offset>\d{4})'   # Clarifier offset, in Hz. 0000 - 9999
-    r'(?P<clar_rx>\d)'          # Apply clarifier to receive, bool
-    r'(?P<clar_tx>\d)'          # Apply clarifier to transmit, bool
-    r'(?P<mode>\w)'             # Mode: 1=LSB 2=USB 3=CW 4=FM 5=AM 6=RTTY-LSB 7=CW-R
-                                #       8=DATA-LSB 9=RTTY-USB A=DATA-FM B=FM-N C=DATA-USB
-                                #       D=AM-N E=C4FM
-    r'(?P<vfo_memory>\d)'       # 0=VFO 1=Memory - ???
-    r'(?P<sql_mode>\d)'         # Squelch mode: 0=off 1=CTCSS TX/RX, 2=CTCSS TX
-                                #               3=DCS TX/RX, 4=DCS TX
-    r'00(?P<shift>\d)0'         # Repeater shift, 0=simplex, 1=+, 2=-
-    r'(?P<tag>.{12});'          # Tag - the text description, up to 12 chars
+    r"MT\d{3}"
+    # frequencxy in Hz
+    r"(?P<freq>\d{9})"
+    # Clarifier direction, + or -
+    r"(?P<clar_dir>[\-\+])"
+    # Clarifier offset, in Hz. 0000 - 9999
+    r"(?P<clar_offset>\d{4})"
+    # Apply clarifier to receive, bool
+    r"(?P<clar_rx>\d)"
+    # Apply clarifier to transmit, bool
+    r"(?P<clar_tx>\d)"
+    # Mode: 1=LSB 2=USB 3=CW 4=FM 5=AM 6=RTTY-LSB 7=CW-R
+    #       8=DATA-LSB 9=RTTY-USB A=DATA-FM B=FM-N C=DATA-USB
+    #       D=AM-N E=C4FM
+    r"(?P<mode>\w)"
+    # 0=VFO 1=Memory - ???
+    r"(?P<vfo_memory>\d)"
+    # Squelch mode: 0=off 1=CTCSS TX/RX, 2=CTCSS TX
+    #               3=DCS TX/RX, 4=DCS TX
+    r"(?P<sql_mode>\d)"
+    # Repeater shift, 0=simplex, 1=+, 2=-
+    r"00(?P<shift>\d)0"
+    # Tag - the text description, up to 12 chars
+    r"(?P<tag>.{12});"
 )
 
 
@@ -45,12 +55,11 @@ class Memory:
     def from_mt(cls, line: bytes) -> "Memory":
         match = re.match(MT_RE, line.decode())
         if not match:
-            raise ValueError(f"Unable to parse line: {result.decode()}")
+            raise ValueError(f"Unable to parse line: {line.decode()}")
 
         # TODO: return a real Memory object
         print(match.groups())
         return cls()
-
 
 
 def main():
@@ -66,10 +75,16 @@ def main():
 def parse_args() -> Namespace:
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--port", "-p", help=f"Serial port to connect to, default: {DEFAULT_PORT}", default=DEFAULT_PORT
+        "--port",
+        "-p",
+        help=f"Serial port to connect to, default: {DEFAULT_PORT}",
+        default=DEFAULT_PORT,
     )
     parser.add_argument(
-        "--baud", "-b", help=f"Serial baud rate, default: {DEFAULT_BAUD}", default=DEFAULT_BAUD
+        "--baud",
+        "-b",
+        help=f"Serial baud rate, default: {DEFAULT_BAUD}",
+        default=DEFAULT_BAUD,
     )
 
     # TODO: make these subcommands instead of verb, noun
@@ -89,10 +104,10 @@ def read_memory(port: Serial):
     # value, so we might have to tune to that channel and read it from CAT
 
     # Fetch memory channels from radio
-    for chan in range(1, MEMORY_CHANNELS+1):
+    for chan in range(1, MEMORY_CHANNELS + 1):
         cmd = f"MT{chan:03d};"
         port.write(cmd.encode())
-        result = port.read_until(b';')
+        result = port.read_until(b";")
         if result == b"?;":
             continue
 
@@ -101,7 +116,6 @@ def read_memory(port: Serial):
 
         # parse each one
         Memory.from_mt(result)
-
 
     # Dump to CSV file
 
