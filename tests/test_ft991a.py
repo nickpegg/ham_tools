@@ -1,14 +1,16 @@
 from warnings import warn
 
-from ft991a import (
+from ham_tools.ft991a import (
     DEFAULT_BAUD,
     Memory,
-    Mode,
-    RepeaterShift,
-    SquelchMode,
     discover,
     read_memory,
     write_memory,
+)
+from ham_tools.enums import (
+    Mode,
+    RepeaterShift,
+    SquelchMode,
 )
 from serial import Serial
 
@@ -67,7 +69,7 @@ def test_integration() -> None:
     with port:
         write_memory(port, original)
 
-        # Tune to some random freq and mess with the CTCSSDCS
+        # Tune to some random freq and mess with the CTCSS/DCS
         port.write(b"FA144000000;")
         port.read_until(b";")
         port.write(b"CN0000;")
@@ -80,5 +82,5 @@ def test_integration() -> None:
 
         # Clean up after ourselves. AM (VFO-A to Memory Channel) has the effect of
         # clearing the selected memory channel.
-        port.write(b"MC099;")
+        port.write(f"MC{original.channel:03d};".encode())
         port.write(b"AM;")

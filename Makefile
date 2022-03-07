@@ -1,3 +1,5 @@
+.PHONY: init fmt tests all
+
 all: fmt tests
 
 init:
