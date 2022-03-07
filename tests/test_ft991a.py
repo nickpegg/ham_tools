@@ -64,6 +64,7 @@ def test_integration() -> None:
         channel=99,
         frequency_hz=146_520_000,
         mode=Mode.FM,
+        # TODO: test CTCSS/DCS
     )
 
     with port:

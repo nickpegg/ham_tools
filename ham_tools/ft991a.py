@@ -14,7 +14,7 @@ from serial import Serial, SerialException
 from serial.tools.list_ports import grep as grep_ports
 from serial.tools.list_ports_common import ListPortInfo
 
-from .enums import Mode, RepeaterShift, SquelchMode, CTCSS_TONES, DCS_CODES, ToneSquelch
+from .enums import CTCSS_TONES, DCS_CODES, Mode, RepeaterShift, SquelchMode, ToneSquelch
 
 DEFAULT_PORT = "/dev/ttyUSB0"
 DEFAULT_BAUD = 38400
@@ -69,8 +69,8 @@ class Memory:
     repeater_shift: RepeaterShift = RepeaterShift.SIMPLEX
     tag: str = ""
 
-    ctcss_dhz: int = 0  # in decihertz
-    dcs_code: int = 0
+    ctcss_dhz: Optional[int] = None  # in decihertz
+    dcs_code: Optional[int] = None
 
     @classmethod
     def from_mt(cls, channel: int, line: bytes) -> "Memory":
@@ -125,7 +125,9 @@ def main() -> None:
             print(discover().device)
         else:
             try:
-                port = Serial(args.port, baudrate=args.baud, timeout=0.25, exclusive=True)
+                port = Serial(
+                    args.port, baudrate=args.baud, timeout=0.25, exclusive=True
+                )
             except SerialException as e:
                 raise RuntimeError(
                     f"Could not open {args.port}. Is the radio plugged in and powered "
@@ -254,13 +256,18 @@ def read_tone(port: Serial, channel: int, tone_type: ToneSquelch) -> int:
 
 
 def write_memory(port: Serial, memory: Memory) -> None:
-    # TODO: write CTCSS/DCS
     cmd = memory.to_mt()
     port.write(cmd)
 
     result = port.read_until(b";")
     if result == b"?;":
         raise RuntimeError(f"Radio did not like the cmd we sent: {cmd.decode()}")
+
+    if memory.ctcss_dhz is not None:
+        write_tone(port, memory.channel, ToneSquelch.CTCSS, memory.ctcss_dhz)
+    if memory.dcs_code is not None:
+        write_tone(port, memory.channel, ToneSquelch.DCS, memory.dcs_code)
+
 
 def write_tone(port: Serial, channel: int, tone_type: ToneSquelch, tone: int) -> None:
     # Convert the tone to the numerical value that the radio wants
