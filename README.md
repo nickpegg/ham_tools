@@ -12,12 +12,13 @@ script easily enough to program memories on this radio via CAT.
 # TODO
 
 ## Features
-- [] Read/write CTCSS tones and DCS codes along with memory
-- [] Menu settings read/write
+- [x] Read/write memory channels
+- [ ] Read/write CTCSS tones and DCS codes along with memory
+- [ ] Menu settings read/write
 
 
 ## Refactoring
 
-- [] Make radio functions into a class
-- [] Separate CLI code from business logic
-- [] Make CAT shell its own command
+- [ ] Make radio functions into a class
+- [ ] Separate CLI code from business logic
+- [ ] Make CAT shell its own command
