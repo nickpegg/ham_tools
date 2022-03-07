@@ -14,7 +14,7 @@ from serial import Serial, SerialException
 from serial.tools.list_ports import grep as grep_ports
 from serial.tools.list_ports_common import ListPortInfo
 
-from .enums import Mode, RepeaterShift, SquelchMode
+from .enums import Mode, RepeaterShift, SquelchMode, CTCSS_TONES, DCS_CODES, ToneSquelch
 
 DEFAULT_PORT = "/dev/ttyUSB0"
 DEFAULT_BAUD = 38400
@@ -69,6 +69,9 @@ class Memory:
     repeater_shift: RepeaterShift = RepeaterShift.SIMPLEX
     tag: str = ""
 
+    ctcss_dhz: int = 0  # in decihertz
+    dcs_code: int = 0
+
     @classmethod
     def from_mt(cls, channel: int, line: bytes) -> "Memory":
         """
@@ -122,7 +125,7 @@ def main() -> None:
             print(discover().device)
         else:
             try:
-                port = Serial(args.port, baudrate=args.baud, timeout=0.25)
+                port = Serial(args.port, baudrate=args.baud, timeout=0.25, exclusive=True)
             except SerialException as e:
                 raise RuntimeError(
                     f"Could not open {args.port}. Is the radio plugged in and powered "
@@ -224,7 +227,30 @@ def read_memory(port: Serial, channel: int) -> Optional[Memory]:
     if result == b"?;":
         return None
 
+    mem = Memory.from_mt(channel, result)
+    mem.ctcss_dhz = read_tone(port, channel, ToneSquelch.CTCSS)
+    mem.dcs_code = read_tone(port, channel, ToneSquelch.DCS)
+
     return Memory.from_mt(channel, result)
+
+
+def read_tone(port: Serial, channel: int, tone_type: ToneSquelch) -> int:
+    """
+    Reads a CTCSS or DCS tone value from the particular channel
+
+    Returns:
+        If CTCSS, the frequency in decihertz. If DCS, the code value
+    """
+    port.write(f"MC{channel:03d};".encode())
+    port.read_until(b";")
+    port.write(f"CN0{tone_type.value};".encode())
+    result = port.read_until(b";")
+
+    num = int(result[4:7])
+    if tone_type == ToneSquelch.CTCSS:
+        return CTCSS_TONES[num]
+    else:
+        return DCS_CODES[num]
 
 
 def write_memory(port: Serial, memory: Memory) -> None:
@@ -235,6 +261,24 @@ def write_memory(port: Serial, memory: Memory) -> None:
     result = port.read_until(b";")
     if result == b"?;":
         raise RuntimeError(f"Radio did not like the cmd we sent: {cmd.decode()}")
+
+def write_tone(port: Serial, channel: int, tone_type: ToneSquelch, tone: int) -> None:
+    # Convert the tone to the numerical value that the radio wants
+    if tone_type == ToneSquelch.CTCSS:
+        mapping = {v: k for k, v in CTCSS_TONES.items()}
+        if tone not in mapping:
+            raise RuntimeError(f"Not a valid CTCSS frequency in decihertz: {tone}")
+        num = mapping[tone]
+    else:
+        mapping = {v: k for k, v in DCS_CODES.items()}
+        if tone not in mapping:
+            raise RuntimeError(f"Not a valid DCS code: {tone}")
+        num = mapping[tone]
+
+    port.write(f"MC{channel:03d};".encode())
+    port.read_until(b";")
+    port.write(f"CN0{tone_type.value}{num:03d};".encode())
+    result = port.read_until(b";")
 
 
 if __name__ == "__main__":
