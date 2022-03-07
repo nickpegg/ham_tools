@@ -4,6 +4,7 @@ init:
 	poetry install
 
 fmt:
+	poetry run isort ham_tools
 	poetry run black ham_tools
 
 tests:

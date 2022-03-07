@@ -3,13 +3,13 @@ Simple tool for reading/writing memory and menu settings from a Yaesu FT-991a ov
 CAT serial protocol.
 """
 
-import sys
 import re
-
-from csv import DictReader, DictWriter
-from enum import Enum
+import sys
 from argparse import ArgumentParser, Namespace
+from csv import DictReader, DictWriter
 from dataclasses import dataclass
+from enum import Enum
+from typing import Optional
 
 from serial import Serial, SerialException
 from serial.tools.list_ports import grep as grep_ports
@@ -90,14 +90,15 @@ class RepeaterShift(Enum):
 class Memory:
     channel: int
     frequency_hz: int
-    clarifier_direction: str
-    clarifier_offset_hz: int
-    clarifier_rx: bool
-    clarifier_tx: bool
     mode: Mode
-    squelch_mode: SquelchMode
-    repeater_shift: RepeaterShift
-    tag: str
+
+    clarifier_direction: str = "+"
+    clarifier_offset_hz: int = 0
+    clarifier_rx: bool = False
+    clarifier_tx: bool = False
+    squelch_mode: SquelchMode = SquelchMode.OFF
+    repeater_shift: RepeaterShift = RepeaterShift.SIMPLEX
+    tag: str = ""
 
     @classmethod
     def from_mt(cls, channel: int, line: bytes) -> "Memory":
@@ -164,7 +165,7 @@ def main() -> None:
                     repl(port)
                 elif args.action == "read":
                     if args.thing == "memory":
-                        read_memory(port)
+                        read_memories(port)
     except Exception as e:
         if not args.v:
             print(e)
@@ -225,7 +226,7 @@ def repl(port: Serial) -> None:
         print(port.read_until(b";").decode())
 
 
-def read_memory(port: Serial) -> None:
+def read_memories(port: Serial) -> None:
     """
     Read all memory from radio and dump to a CSV file.
 
@@ -238,18 +239,33 @@ def read_memory(port: Serial) -> None:
 
     # Fetch memory channels from radio
     for chan in range(1, MEMORY_CHANNELS + 1):
-        cmd = f"MT{chan:03d};"
-        port.write(cmd.encode())
-        result = port.read_until(b";")
-        if result == b"?;":
+        mem = read_memory(port, chan)
+        if mem is None:
             continue
-
-        print(result)
-        mem = Memory.from_mt(chan, result)
-        memories.append(mem)
         print(mem)
+        memories.append(mem)
 
-    # Dump to CSV file
+    # TODO: Dump to CSV file
+
+
+def read_memory(port: Serial, channel: int) -> Optional[Memory]:
+    cmd = f"MT{channel:03d};"
+    port.write(cmd.encode())
+    result = port.read_until(b";")
+    if result == b"?;":
+        return None
+
+    return Memory.from_mt(channel, result)
+
+
+def write_memory(port: Serial, memory: Memory) -> None:
+    # TODO: write CTCSS/DCS
+    cmd = memory.to_mt()
+    port.write(cmd)
+
+    result = port.read_until(b";")
+    if result == b"?;":
+        raise RuntimeError(f"Radio did not like the cmd we sent: {cmd.decode()}")
 
 
 if __name__ == "__main__":

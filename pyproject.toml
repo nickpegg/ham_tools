@@ -9,13 +9,24 @@ license = "MIT"
 ft991a = 'ham_tools.ft991a:main'
 
 [tool.poetry.dependencies]
-python = ">=3.8.0"
+python = ">=3.8.0,<4"
 pyserial = "^3.5"
+isort = "^5.10.1"
 
 [tool.poetry.dev-dependencies]
 black = "*"
 mypy = "*"
 pytest = "*"
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+strict = true
+
+[[tool.mypy.overrides]]
+module = "serial.*"
+ignore_missing_imports = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
