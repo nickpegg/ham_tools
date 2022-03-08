@@ -6,9 +6,9 @@ init:
 	poetry install
 
 fmt:
-	poetry run isort ham_tools
-	poetry run black ham_tools
+	poetry run isort ham_tools tests
+	poetry run black ham_tools tests
 
 tests:
-	poetry run mypy ham_tools
+	poetry run mypy ham_tools tests
 	poetry run pytest

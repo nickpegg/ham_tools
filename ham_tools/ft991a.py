@@ -233,7 +233,7 @@ def read_memory(port: Serial, channel: int) -> Optional[Memory]:
     mem.ctcss_dhz = read_tone(port, channel, ToneSquelch.CTCSS)
     mem.dcs_code = read_tone(port, channel, ToneSquelch.DCS)
 
-    return Memory.from_mt(channel, result)
+    return mem
 
 
 def read_tone(port: Serial, channel: int, tone_type: ToneSquelch) -> int:

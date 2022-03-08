@@ -1,18 +1,9 @@
 from warnings import warn
 
-from ham_tools.ft991a import (
-    DEFAULT_BAUD,
-    Memory,
-    discover,
-    read_memory,
-    write_memory,
-)
-from ham_tools.enums import (
-    Mode,
-    RepeaterShift,
-    SquelchMode,
-)
 from serial import Serial
+
+from ham_tools.enums import Mode, RepeaterShift, SquelchMode
+from ham_tools.ft991a import DEFAULT_BAUD, Memory, discover, read_memory, write_memory
 
 
 def test_memory() -> None:
@@ -64,7 +55,9 @@ def test_integration() -> None:
         channel=99,
         frequency_hz=146_520_000,
         mode=Mode.FM,
-        # TODO: test CTCSS/DCS
+        squelch_mode=SquelchMode.CTCSS_RX_TX,
+        ctcss_dhz=1318,
+        dcs_code=332,
     )
 
     with port:
