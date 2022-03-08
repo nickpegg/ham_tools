@@ -14,6 +14,8 @@ script easily enough to program memories on this radio via CAT.
 ## Features
 - [x] Read/write memory channels
 - [x] Read/write CTCSS tones and DCS codes along with memory
+- [ ] read/write memory to/from CSV
+- [ ] Add memory writing to CLI
 - [ ] Menu settings read/write
 
 
@@ -22,4 +24,4 @@ script easily enough to program memories on this radio via CAT.
 - [x] Test against various Python versions
 - [x] Make radio functions into a class
 - [x] Separate CLI code from business logic
-- [ ] Make CAT shell its own command
+- [x] Make CAT shell its own command
