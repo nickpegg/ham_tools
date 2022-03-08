@@ -9,7 +9,7 @@ license = "MIT"
 ft991a = 'ham_tools.ft991a:main'
 
 [tool.poetry.dependencies]
-python = ">=3.7.0,<4"
+python = ">=3.8.0,<4"
 pyserial = "^3.5"
 
 [tool.poetry.dev-dependencies]
