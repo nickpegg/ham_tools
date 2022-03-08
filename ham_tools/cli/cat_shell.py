@@ -13,14 +13,20 @@ from ham_tools.constants import DEFAULT_BAUD, DEFAULT_PORT
 def main() -> None:
     args = parse_args()
     try:
-        port = Serial(args.port, baudrate=args.baud, timeout=0.25, exclusive=True)
-    except SerialException as e:
-        raise RuntimeError(
-            f"Could not open {args.port}. Is the radio plugged in and powered " "on?"
-        )
+        try:
+            port = Serial(args.port, baudrate=args.baud, timeout=0.25, exclusive=True)
+        except SerialException as e:
+            raise RuntimeError(
+                f"Could not open {args.port}. Is the radio plugged in and powered " "on?"
+            )
 
-    with port:
-        repl(port)
+        with port:
+            repl(port)
+    except Exception as e:
+        if not args.v:
+            print(e)
+        else:
+            raise
 
 
 def parse_args() -> Namespace:
