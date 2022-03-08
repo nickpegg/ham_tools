@@ -17,7 +17,8 @@ def main() -> None:
             port = Serial(args.port, baudrate=args.baud, timeout=0.25, exclusive=True)
         except SerialException as e:
             raise RuntimeError(
-                f"Could not open {args.port}. Is the radio plugged in and powered " "on?"
+                f"Could not open {args.port}. Is the radio plugged in and powered "
+                "on?"
             )
 
         with port:
