@@ -21,5 +21,5 @@ script easily enough to program memories on this radio via CAT.
 
 - [x] Test against various Python versions
 - [x] Make radio functions into a class
-- [ ] Separate CLI code from business logic
+- [x] Separate CLI code from business logic
 - [ ] Make CAT shell its own command

@@ -1,11 +1,5 @@
-"""
-Simple tool for reading/writing memory and menu settings from a Yaesu FT-991a over the
-CAT serial protocol.
-"""
-
 import re
 import sys
-from argparse import ArgumentParser, Namespace
 from csv import DictReader, DictWriter
 from dataclasses import dataclass
 from typing import Optional
@@ -15,9 +9,6 @@ from serial.tools.list_ports import grep as grep_ports
 from serial.tools.list_ports_common import ListPortInfo
 
 from .enums import CTCSS_TONES, DCS_CODES, Mode, RepeaterShift, SquelchMode, ToneSquelch
-
-DEFAULT_PORT = "/dev/ttyUSB0"
-DEFAULT_BAUD = 38400
 
 # How many memory channels are there
 #
@@ -117,64 +108,6 @@ class Memory:
         return buf.encode()
 
 
-def main() -> None:
-    args = parse_args()
-
-    try:
-        if args.action == "discover":
-            print(discover().device)
-        else:
-            try:
-                port = Serial(
-                    args.port, baudrate=args.baud, timeout=0.25, exclusive=True
-                )
-            except SerialException as e:
-                raise RuntimeError(
-                    f"Could not open {args.port}. Is the radio plugged in and powered "
-                    "on?"
-                )
-
-            with port:
-                radio = FT991A(port)
-                if args.action == "shell":
-                    repl(port)
-                elif args.action == "read":
-                    if args.thing == "memory":
-                        radio.read_memories()
-    except Exception as e:
-        if not args.v:
-            print(e)
-        else:
-            raise
-
-
-def parse_args() -> Namespace:
-    parser = ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "-v",
-        help="Verbose mode",
-        action="store_true",
-    )
-    parser.add_argument(
-        "-p",
-        "--port",
-        help=f"Serial port to connect to, default: {DEFAULT_PORT}",
-        default=DEFAULT_PORT,
-    )
-    parser.add_argument(
-        "-b",
-        "--baud",
-        help=f"Serial baud rate, default: {DEFAULT_BAUD}",
-        default=DEFAULT_BAUD,
-    )
-
-    # TODO: make these subcommands instead of verb, noun
-    # TODO: filename flag
-    parser.add_argument("action", choices=("read", "write", "discover", "shell"))
-    parser.add_argument("thing", choices=("memory", "menu"), nargs="?")
-    return parser.parse_args()
-
-
 def discover() -> ListPortInfo:
     """
     Find an FT-991a on one of the serial ports
@@ -183,22 +116,6 @@ def discover() -> ListPortInfo:
     if len(ports) == 0:
         raise RuntimeError("Unable to discover FT-991a serial port. Is it plugged in?")
     return ports[0]
-
-
-def repl(port: Serial) -> None:
-    """
-    Enter a REPL shell with the radio
-    """
-    print("Press Enter or Ctrl-D to quit")
-    while True:
-        cmd = input(">>> ").rstrip()
-        if cmd == "":
-            break
-
-        if not cmd.endswith(";"):
-            cmd += ";"
-        port.write(cmd.encode())
-        print(port.read_until(b";").decode())
 
 
 @dataclass
@@ -284,7 +201,3 @@ class FT991A:
 
         self.send_cmd(f"MC{channel:03d};".encode())
         self.send_cmd(f"CN0{tone_type.value}{num:03d};".encode())
-
-
-if __name__ == "__main__":
-    main()

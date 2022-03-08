@@ -3,8 +3,9 @@ from warnings import warn
 import pytest
 from serial import Serial
 
+from ham_tools.constants import DEFAULT_BAUD
 from ham_tools.enums import Mode, RepeaterShift, SquelchMode
-from ham_tools.ft991a import DEFAULT_BAUD, FT991A, Memory, discover
+from ham_tools.ft991a import FT991A, Memory, discover
 
 
 def test_memory() -> None:

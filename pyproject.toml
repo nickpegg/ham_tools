@@ -6,7 +6,8 @@ authors = ["Nick Pegg <nick@nickpegg.com>"]
 license = "MIT"
 
 [tool.poetry.scripts]
-ft991a = 'ham_tools.ft991a:main'
+ft991a = 'ham_tools.cli.ft991a:main'
+cat_shell = 'ham_tools.cli.cat_shell:main'
 
 [tool.poetry.dependencies]
 python = ">=3.8.0,<4"
