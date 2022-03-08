@@ -1,5 +1,6 @@
 from warnings import warn
 
+import pytest
 from serial import Serial
 
 from ham_tools.enums import Mode, RepeaterShift, SquelchMode
@@ -38,6 +39,7 @@ def test_memory() -> None:
     assert m.tag == "10M FT8"
 
 
+@pytest.mark.integration
 def test_integration() -> None:
     """
     Integration test with a real FT-991a - start with defaults, write to memory using

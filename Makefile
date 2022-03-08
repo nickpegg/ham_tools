@@ -11,4 +11,7 @@ fmt:
 
 tests:
 	poetry run mypy ham_tools tests
+	poetry run pytest -m 'not integration'
+
+integration:
 	poetry run pytest
