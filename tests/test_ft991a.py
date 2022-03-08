@@ -4,7 +4,7 @@ import pytest
 from serial import Serial
 
 from ham_tools.enums import Mode, RepeaterShift, SquelchMode
-from ham_tools.ft991a import DEFAULT_BAUD, Memory, discover, read_memory, write_memory
+from ham_tools.ft991a import DEFAULT_BAUD, FT991A, Memory, discover
 
 
 def test_memory() -> None:
@@ -63,20 +63,18 @@ def test_integration() -> None:
     )
 
     with port:
-        write_memory(port, original)
+        radio = FT991A(port)
+        radio.write_memory(original)
 
         # Tune to some random freq and mess with the CTCSS/DCS
-        port.write(b"FA144000000;")
-        port.read_until(b";")
-        port.write(b"CN0000;")
-        port.read_until(b";")
-        port.write(b"CN1000;")
-        port.read_until(b";")
+        radio.send_cmd(b"FA144000000;")
+        radio.send_cmd(b"CN0000;")
+        radio.send_cmd(b"CN1000;")
 
-        written = read_memory(port, original.channel)
+        written = radio.read_memory(original.channel)
         assert written == original
 
         # Clean up after ourselves. AM (VFO-A to Memory Channel) has the effect of
         # clearing the selected memory channel.
-        port.write(f"MC{original.channel:03d};".encode())
-        port.write(b"AM;")
+        radio.send_cmd(f"MC{original.channel:03d};".encode())
+        radio.send_cmd(b"AM;")

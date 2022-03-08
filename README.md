@@ -20,6 +20,6 @@ script easily enough to program memories on this radio via CAT.
 ## Refactoring
 
 - [x] Test against various Python versions
-- [ ] Make radio functions into a class
+- [x] Make radio functions into a class
 - [ ] Separate CLI code from business logic
 - [ ] Make CAT shell its own command

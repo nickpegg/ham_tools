@@ -135,11 +135,12 @@ def main() -> None:
                 )
 
             with port:
+                radio = FT991A(port)
                 if args.action == "shell":
                     repl(port)
                 elif args.action == "read":
                     if args.thing == "memory":
-                        read_memories(port)
+                        radio.read_memories()
     except Exception as e:
         if not args.v:
             print(e)
@@ -200,92 +201,89 @@ def repl(port: Serial) -> None:
         print(port.read_until(b";").decode())
 
 
-def read_memories(port: Serial) -> None:
-    """
-    Read all memory from radio and dump to a CSV file.
+@dataclass
+class FT991A:
+    port: Serial
 
-    Uses the MT command, which gives us the tag (name) of the channel
-    """
-    # TODO: read CTCSS freq or DCS code - the MT command includes the mode but not the
-    # value, so we might have to tune to that channel and read it from CAT
+    def send_cmd(self, cmd: bytes) -> bytes:
+        """
+        Send a command to the serial port and return the response
+        """
+        self.port.write(cmd)
+        return bytes(self.port.read_until(b";"))
 
-    memories = []
+    def read_memories(self) -> None:
+        """
+        Read all memory from radio and dump to a CSV file.
 
-    # Fetch memory channels from radio
-    for chan in range(1, MEMORY_CHANNELS + 1):
-        mem = read_memory(port, chan)
-        if mem is None:
-            continue
-        print(mem)
-        memories.append(mem)
+        Uses the MT command, which gives us the tag (name) of the channel
+        """
+        memories = []
 
-    # TODO: Dump to CSV file
+        # Fetch memory channels from radio
+        for chan in range(1, MEMORY_CHANNELS + 1):
+            mem = self.read_memory(chan)
+            if mem is None:
+                continue
+            print(mem)
+            memories.append(mem)
 
+        # TODO: Dump to CSV file
 
-def read_memory(port: Serial, channel: int) -> Optional[Memory]:
-    cmd = f"MT{channel:03d};"
-    port.write(cmd.encode())
-    result = port.read_until(b";")
-    if result == b"?;":
-        return None
+    def read_memory(self, channel: int) -> Optional[Memory]:
+        cmd = f"MT{channel:03d};"
+        result = self.send_cmd(cmd.encode())
+        if result == b"?;":
+            return None
 
-    mem = Memory.from_mt(channel, result)
-    mem.ctcss_dhz = read_tone(port, channel, ToneSquelch.CTCSS)
-    mem.dcs_code = read_tone(port, channel, ToneSquelch.DCS)
+        mem = Memory.from_mt(channel, result)
+        mem.ctcss_dhz = self.read_tone(channel, ToneSquelch.CTCSS)
+        mem.dcs_code = self.read_tone(channel, ToneSquelch.DCS)
 
-    return mem
+        return mem
 
+    def read_tone(self, channel: int, tone_type: ToneSquelch) -> int:
+        """
+        Reads a CTCSS or DCS tone value from the particular channel
 
-def read_tone(port: Serial, channel: int, tone_type: ToneSquelch) -> int:
-    """
-    Reads a CTCSS or DCS tone value from the particular channel
+        Returns:
+            If CTCSS, the frequency in decihertz. If DCS, the code value
+        """
+        self.send_cmd(f"MC{channel:03d};".encode())
+        result = self.send_cmd(f"CN0{tone_type.value};".encode())
 
-    Returns:
-        If CTCSS, the frequency in decihertz. If DCS, the code value
-    """
-    port.write(f"MC{channel:03d};".encode())
-    port.read_until(b";")
-    port.write(f"CN0{tone_type.value};".encode())
-    result = port.read_until(b";")
+        num = int(result[4:7])
+        if tone_type == ToneSquelch.CTCSS:
+            return CTCSS_TONES[num]
+        else:
+            return DCS_CODES[num]
 
-    num = int(result[4:7])
-    if tone_type == ToneSquelch.CTCSS:
-        return CTCSS_TONES[num]
-    else:
-        return DCS_CODES[num]
+    def write_memory(self, memory: Memory) -> None:
+        cmd = memory.to_mt()
+        result = self.send_cmd(cmd)
+        if result == b"?;":
+            raise RuntimeError(f"Radio did not like the cmd we sent: {cmd.decode()}")
 
+        if memory.ctcss_dhz is not None:
+            self.write_tone(memory.channel, ToneSquelch.CTCSS, memory.ctcss_dhz)
+        if memory.dcs_code is not None:
+            self.write_tone(memory.channel, ToneSquelch.DCS, memory.dcs_code)
 
-def write_memory(port: Serial, memory: Memory) -> None:
-    cmd = memory.to_mt()
-    port.write(cmd)
+    def write_tone(self, channel: int, tone_type: ToneSquelch, tone: int) -> None:
+        # Convert the tone to the numerical value that the radio wants
+        if tone_type == ToneSquelch.CTCSS:
+            mapping = {v: k for k, v in CTCSS_TONES.items()}
+            if tone not in mapping:
+                raise RuntimeError(f"Not a valid CTCSS frequency in decihertz: {tone}")
+            num = mapping[tone]
+        else:
+            mapping = {v: k for k, v in DCS_CODES.items()}
+            if tone not in mapping:
+                raise RuntimeError(f"Not a valid DCS code: {tone}")
+            num = mapping[tone]
 
-    result = port.read_until(b";")
-    if result == b"?;":
-        raise RuntimeError(f"Radio did not like the cmd we sent: {cmd.decode()}")
-
-    if memory.ctcss_dhz is not None:
-        write_tone(port, memory.channel, ToneSquelch.CTCSS, memory.ctcss_dhz)
-    if memory.dcs_code is not None:
-        write_tone(port, memory.channel, ToneSquelch.DCS, memory.dcs_code)
-
-
-def write_tone(port: Serial, channel: int, tone_type: ToneSquelch, tone: int) -> None:
-    # Convert the tone to the numerical value that the radio wants
-    if tone_type == ToneSquelch.CTCSS:
-        mapping = {v: k for k, v in CTCSS_TONES.items()}
-        if tone not in mapping:
-            raise RuntimeError(f"Not a valid CTCSS frequency in decihertz: {tone}")
-        num = mapping[tone]
-    else:
-        mapping = {v: k for k, v in DCS_CODES.items()}
-        if tone not in mapping:
-            raise RuntimeError(f"Not a valid DCS code: {tone}")
-        num = mapping[tone]
-
-    port.write(f"MC{channel:03d};".encode())
-    port.read_until(b";")
-    port.write(f"CN0{tone_type.value}{num:03d};".encode())
-    result = port.read_until(b";")
+        self.send_cmd(f"MC{channel:03d};".encode())
+        self.send_cmd(f"CN0{tone_type.value}{num:03d};".encode())
 
 
 if __name__ == "__main__":
