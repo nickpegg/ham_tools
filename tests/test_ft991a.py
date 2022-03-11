@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from warnings import warn
 
 import pytest
@@ -5,7 +6,16 @@ from serial import Serial
 
 from ham_tools.constants import DEFAULT_BAUD
 from ham_tools.enums import Mode, RepeaterShift, SquelchMode
-from ham_tools.ft991a import FT991A, Memory, discover
+from ham_tools.ft991a import CSV_FIELDS, FT991A, Memory, discover
+
+
+def test_csv_fields() -> None:
+    """
+    CSV_FIELDS should match what the dataclass uses
+    """
+    memory_keys = sorted(asdict(Memory(0, 0, Mode.FM)).keys())
+    fields = sorted(CSV_FIELDS)
+    assert memory_keys == fields
 
 
 def test_memory() -> None:

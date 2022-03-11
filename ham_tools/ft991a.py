@@ -1,12 +1,14 @@
 import re
 import sys
 from csv import DictReader, DictWriter
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Optional, Sequence, Tuple
 
 from serial import Serial, SerialException
 from serial.tools.list_ports import grep as grep_ports
 from serial.tools.list_ports_common import ListPortInfo
+from tqdm import tqdm
 
 from .enums import CTCSS_TONES, DCS_CODES, Mode, RepeaterShift, SquelchMode, ToneSquelch
 
@@ -43,6 +45,22 @@ MT_RE = (
     r"00(?P<shift>\d)0"
     # Tag - the text description, up to 12 chars
     r"(?P<tag>.{12});"
+)
+
+# Order that the Memory fields will be written in each CSV row
+CSV_FIELDS = (
+    "channel",
+    "tag",
+    "frequency_hz",
+    "mode",
+    "squelch_mode",
+    "ctcss_dhz",
+    "dcs_code",
+    "repeater_shift",
+    "clarifier_direction",
+    "clarifier_offset_hz",
+    "clarifier_rx",
+    "clarifier_tx",
 )
 
 
@@ -129,7 +147,7 @@ class FT991A:
         self.port.write(cmd)
         return bytes(self.port.read_until(b";"))
 
-    def read_memories(self) -> None:
+    def read_memories(self, csv_path: Path) -> None:
         """
         Read all memory from radio and dump to a CSV file.
 
@@ -138,14 +156,24 @@ class FT991A:
         memories = []
 
         # Fetch memory channels from radio
-        for chan in range(1, MEMORY_CHANNELS + 1):
+        for chan in tqdm(range(1, MEMORY_CHANNELS + 1)):
             mem = self.read_memory(chan)
             if mem is None:
                 continue
-            print(mem)
             memories.append(mem)
 
-        # TODO: Dump to CSV file
+        # Dump to CSV
+        with csv_path.open("w") as csv_file:
+            writer = DictWriter(csv_file, fieldnames=CSV_FIELDS)
+            writer.writeheader()
+            for memory in memories:
+                d = asdict(memory)
+
+                # massage the data a bit
+                for enum_key in ("mode", "squelch_mode", "repeater_shift"):
+                    d[enum_key] = d[enum_key].name
+
+                writer.writerow(d)
 
     def read_memory(self, channel: int) -> Optional[Memory]:
         cmd = f"MT{channel:03d};"
@@ -154,26 +182,30 @@ class FT991A:
             return None
 
         mem = Memory.from_mt(channel, result)
-        mem.ctcss_dhz = self.read_tone(channel, ToneSquelch.CTCSS)
-        mem.dcs_code = self.read_tone(channel, ToneSquelch.DCS)
+        mem.ctcss_dhz, mem.dcs_code = self.read_tones(channel)
 
         return mem
 
-    def read_tone(self, channel: int, tone_type: ToneSquelch) -> int:
+    def read_tones(self, channel: int) -> Tuple[int, int]:
         """
         Reads a CTCSS or DCS tone value from the particular channel
 
         Returns:
-            If CTCSS, the frequency in decihertz. If DCS, the code value
+            A tuple of the CTCSS tone and the DCS code
         """
         self.send_cmd(f"MC{channel:03d};".encode())
-        result = self.send_cmd(f"CN0{tone_type.value};".encode())
 
-        num = int(result[4:7])
-        if tone_type == ToneSquelch.CTCSS:
-            return CTCSS_TONES[num]
-        else:
-            return DCS_CODES[num]
+        results = []
+        for tone_type in (ToneSquelch.CTCSS, ToneSquelch.DCS):
+            result = self.send_cmd(f"CN0{tone_type.value};".encode())
+
+            num = int(result[4:7])
+            if tone_type == ToneSquelch.CTCSS:
+                results.append(CTCSS_TONES[num])
+            else:
+                results.append(DCS_CODES[num])
+
+        return (results[0], results[1])
 
     def write_memory(self, memory: Memory) -> None:
         cmd = memory.to_mt()

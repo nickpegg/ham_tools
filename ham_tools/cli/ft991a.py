@@ -4,11 +4,12 @@ CAT serial protocol.
 """
 
 from argparse import ArgumentParser, Namespace
+from pathlib import Path
 
 from serial import Serial, SerialException
 
 from ham_tools.cli.common import add_common_args
-from ham_tools.constants import DEFAULT_BAUD, DEFAULT_PORT
+from ham_tools.constants import DEFAULT_BAUD, DEFAULT_MEMORIES_FILE, DEFAULT_PORT
 from ham_tools.ft991a import FT991A, discover
 
 
@@ -33,7 +34,7 @@ def main() -> None:
                 radio = FT991A(port)
                 if args.action == "read":
                     if args.thing == "memory":
-                        radio.read_memories()
+                        radio.read_memories(Path(args.m))
                 # TODO: write memory
                 # TODO: read/write settings
     except Exception as e:
@@ -47,8 +48,17 @@ def parse_args() -> Namespace:
     parser = ArgumentParser(description=__doc__)
     add_common_args(parser)
 
+    parser.add_argument(
+        "-m",
+        default=DEFAULT_MEMORIES_FILE,
+        metavar="MEMORIES_FILENAME",
+        help=(
+            f"Filename to read/write channel memories from/to, default: "
+            f"{DEFAULT_MEMORIES_FILE}"
+        ),
+    )
+
     # TODO: make these subcommands instead of verb, noun
-    # TODO: filename flag
     parser.add_argument("action", choices=("read", "write", "discover", "shell"))
     parser.add_argument("thing", choices=("memory", "menu"), nargs="?")
     return parser.parse_args()

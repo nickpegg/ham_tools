@@ -12,6 +12,7 @@ cat_shell = 'ham_tools.cli.cat_shell:main'
 [tool.poetry.dependencies]
 python = ">=3.8.0,<4"
 pyserial = "^3.5"
+tqdm = "^4.63.0"
 
 [tool.poetry.dev-dependencies]
 black = "*"
@@ -28,6 +29,10 @@ strict = true
 
 [[tool.mypy.overrides]]
 module = "serial.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tqdm.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
