@@ -1,3 +1,4 @@
+import logging
 import re
 import sys
 from csv import DictReader, DictWriter
@@ -11,6 +12,8 @@ from serial.tools.list_ports_common import ListPortInfo
 from tqdm import tqdm
 
 from .enums import CTCSS_TONES, DCS_CODES, Mode, RepeaterShift, SquelchMode, ToneSquelch
+
+logger = logging.getLogger("ft991a")
 
 # How many memory channels are there
 #
@@ -144,8 +147,11 @@ class FT991A:
         """
         Send a command to the serial port and return the response
         """
+        logger.debug(f"Sending to radio: {cmd!r}")
         self.port.write(cmd)
-        return bytes(self.port.read_until(b";"))
+        result = bytes(self.port.read_until(b";"))
+        logger.debug(f"Got from radio: {result!r}")
+        return result
 
     def read_memories(self, csv_path: Path) -> None:
         """
@@ -213,23 +219,26 @@ class FT991A:
         if result == b"?;":
             raise RuntimeError(f"Radio did not like the cmd we sent: {cmd.decode()}")
 
+        self.write_tones(memory)
+
+    def write_tones(self, memory: Memory) -> None:
+        if memory.ctcss_dhz is None and memory.dcs_code is None:
+            logger.debug("No tones to write")
+            return
+
+        logger.debug(f"Writing CTCSS {memory.ctcss_dhz} DCS {memory.dcs_code}")
+        self.send_cmd(f"MC{memory.channel:03d};".encode())
         if memory.ctcss_dhz is not None:
-            self.write_tone(memory.channel, ToneSquelch.CTCSS, memory.ctcss_dhz)
-        if memory.dcs_code is not None:
-            self.write_tone(memory.channel, ToneSquelch.DCS, memory.dcs_code)
-
-    def write_tone(self, channel: int, tone_type: ToneSquelch, tone: int) -> None:
-        # Convert the tone to the numerical value that the radio wants
-        if tone_type == ToneSquelch.CTCSS:
             mapping = {v: k for k, v in CTCSS_TONES.items()}
-            if tone not in mapping:
-                raise RuntimeError(f"Not a valid CTCSS frequency in decihertz: {tone}")
-            num = mapping[tone]
-        else:
+            if memory.ctcss_dhz not in mapping:
+                raise RuntimeError(
+                    f"Not a valid CTCSS frequency in decihertz: {memory.ctcss_dhz}"
+                )
+            num = mapping[memory.ctcss_dhz]
+            self.send_cmd(f"CN0{ToneSquelch.CTCSS.value}{num:03d};".encode())
+        if memory.dcs_code is not None:
             mapping = {v: k for k, v in DCS_CODES.items()}
-            if tone not in mapping:
-                raise RuntimeError(f"Not a valid DCS code: {tone}")
-            num = mapping[tone]
-
-        self.send_cmd(f"MC{channel:03d};".encode())
-        self.send_cmd(f"CN0{tone_type.value}{num:03d};".encode())
+            if memory.dcs_code not in mapping:
+                raise RuntimeError(f"Not a valid DCS code: {memory.dcs_code}")
+            num = mapping[memory.dcs_code]
+            self.send_cmd(f"CN0{ToneSquelch.DCS.value}{num:03d};".encode())

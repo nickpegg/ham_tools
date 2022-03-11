@@ -14,4 +14,4 @@ tests:
 	poetry run pytest -m 'not integration' -v
 
 integration:
-	poetry run pytest -v
+	poetry run pytest -vv
