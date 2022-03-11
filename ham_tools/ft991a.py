@@ -271,15 +271,21 @@ class FT991A:
         self.send_cmd(f"MC{memory.channel:03d};".encode())
         if memory.ctcss_dhz is not None:
             mapping = {v: k for k, v in CTCSS_TONES.items()}
-            if memory.ctcss_dhz not in mapping:
+            if memory.ctcss_dhz == 0:
+                num = 0
+            elif memory.ctcss_dhz in mapping:
+                num = mapping[memory.ctcss_dhz]
+            else:
                 raise RuntimeError(
                     f"Not a valid CTCSS frequency in decihertz: {memory.ctcss_dhz}"
                 )
-            num = mapping[memory.ctcss_dhz]
             self.send_cmd(f"CN0{ToneSquelch.CTCSS.value}{num:03d};".encode())
         if memory.dcs_code is not None:
             mapping = {v: k for k, v in DCS_CODES.items()}
-            if memory.dcs_code not in mapping:
+            if memory.dcs_code == 0:
+                num = 0
+            elif memory.dcs_code in mapping:
+                num = mapping[memory.dcs_code]
+            else:
                 raise RuntimeError(f"Not a valid DCS code: {memory.dcs_code}")
-            num = mapping[memory.dcs_code]
             self.send_cmd(f"CN0{ToneSquelch.DCS.value}{num:03d};".encode())
