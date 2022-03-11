@@ -128,6 +128,15 @@ class Memory:
 
         return buf.encode()
 
+    def validate(self) -> None:
+        """
+        Raises a ValueError if something is wrong with this Memory
+        """
+        if len(self.tag) > 12:
+            raise ValueError("Tag must be 12 characters or less")
+        if self.clarifier_direction not in {"+", "-"}:
+            raise ValueError("Clarifier direction must be + or -")
+
 
 def parse_bool(s: str) -> bool:
     if s.lower() == "true":
@@ -243,6 +252,7 @@ class FT991A:
                         ctcss_dhz=int(row["ctcss_dhz"]),
                         dcs_code=int(row["dcs_code"]),
                     )
+                    mem.validate()
                     memories.append(mem)
                 except ValueError as e:
                     raise ValueError(f"Invalid row: {row}\nReason:{e}")
