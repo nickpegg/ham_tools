@@ -15,8 +15,9 @@ script easily enough to program memories on this radio via CAT.
 ## Features
 - [x] Read/write memory channels
 - [x] Read/write CTCSS tones and DCS codes along with memory
-- [ ] read/write memory to/from CSV
-- [ ] Add memory writing to CLI
+- [x] read/write memory to/from CSV
+- [x] Add memory writing to CLI
+- [ ] Store memories in MHz not Hz
 - [ ] Menu settings read/write
 
 

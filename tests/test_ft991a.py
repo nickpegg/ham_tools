@@ -1,4 +1,6 @@
+import logging
 from dataclasses import asdict
+from typing import Any
 from warnings import warn
 
 import pytest
@@ -51,12 +53,14 @@ def test_memory() -> None:
 
 
 @pytest.mark.integration
-def test_integration() -> None:
+def test_integration(caplog: Any) -> None:
     """
     Integration test with a real FT-991a - start with defaults, write to memory using
     the CLI's utility functions, go back to VFO with defaults, then read from memory
     using the CLI's utility functions and make sure what we read is what we wrote.
     """
+    caplog.set_level(logging.DEBUG, logger="ft991a")
+
     try:
         port_info = discover()
         port = Serial(port_info.device, baudrate=DEFAULT_BAUD, timeout=0.5)
