@@ -129,6 +129,15 @@ class Memory:
         return buf.encode()
 
 
+def parse_bool(s: str) -> bool:
+    if s.lower() == "true":
+        return True
+    elif s.lower() == "false":
+        return False
+    else:
+        raise ValueError(f"Could not parse '{s}' as true/false")
+
+
 def discover() -> ListPortInfo:
     """
     Find an FT-991a on one of the serial ports
@@ -213,11 +222,43 @@ class FT991A:
 
         return (results[0], results[1])
 
+    def write_memories(self, csv_path: Path) -> None:
+        # Read CSV file
+        memories = []
+        with csv_path.open() as csv_file:
+            reader = DictReader(csv_file)
+            for row in reader:
+                try:
+                    mem = Memory(
+                        channel=int(row["channel"]),
+                        tag=row["tag"],
+                        repeater_shift=RepeaterShift[row["repeater_shift"]],
+                        frequency_hz=int(row["frequency_hz"]),
+                        mode=Mode[row["mode"]],
+                        clarifier_direction=row["clarifier_direction"],
+                        clarifier_offset_hz=int(row["clarifier_offset_hz"]),
+                        clarifier_rx=parse_bool(row["clarifier_rx"]),
+                        clarifier_tx=parse_bool(row["clarifier_tx"]),
+                        squelch_mode=SquelchMode[row["squelch_mode"]],
+                        ctcss_dhz=int(row["ctcss_dhz"]),
+                        dcs_code=int(row["dcs_code"]),
+                    )
+                    memories.append(mem)
+                except ValueError as e:
+                    raise ValueError(f"Invalid row: {row}\nReason:{e}")
+
+        # Write each memory to the radio
+        for memory in tqdm(memories):
+            self.write_memory(memory)
+
+        # Be nice and tune to channel 1
+        self.send_cmd(b"MC001;")
+
     def write_memory(self, memory: Memory) -> None:
         cmd = memory.to_mt()
         result = self.send_cmd(cmd)
         if result == b"?;":
-            raise RuntimeError(f"Radio did not like the cmd we sent: {cmd.decode()}")
+            raise ValueError(f"Radio did not like the cmd we sent: {cmd.decode()}")
 
         self.write_tones(memory)
 

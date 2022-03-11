@@ -35,7 +35,9 @@ def main() -> None:
                 if args.action == "read":
                     if args.thing == "memory":
                         radio.read_memories(Path(args.m))
-                # TODO: write memory
+                elif args.action == "write":
+                    if args.thing == "memory":
+                        radio.write_memories(Path(args.m))
                 # TODO: read/write settings
     except Exception as e:
         if not args.v:
