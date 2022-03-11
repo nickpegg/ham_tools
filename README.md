@@ -9,6 +9,25 @@ script easily enough to program memories on this radio via CAT.
 * `ft991a` - Tool to read/write channel memory and settings to a FT-991a over the CAT serial protocol
 * `cat_shell` - REPL shell for your radio. Type in a CAT command, and it'll print the response
 
+# Installation
+```
+pip install git+https://github.com/nickpegg/ham_tools.git
+```
+
+# Example usage
+
+First, dump your radio's existing memories to a CSV file:
+```
+ft991a read memory
+```
+
+Then, edit the CSV file it wrote the memories to, adding stations or making changes.
+
+Now, write the memories from the CSV back to the radio:
+```
+ft991a write memory
+```
+
 
 # TODO
 
