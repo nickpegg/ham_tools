@@ -7,6 +7,7 @@ I figured that equipped with the CAT manual for it, I could put together a
 script easily enough to program memories on this radio via CAT.
 
 * `ft991a` - Tool to read/write channel memory and settings to a FT-991a over the CAT serial protocol
+* `cat_shell` - REPL shell for your radio. Type in a CAT command, and it'll print the response
 
 
 # TODO
