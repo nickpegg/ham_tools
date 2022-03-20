@@ -18,6 +18,9 @@ def test_load_file() -> None:
     assert adif.created == datetime(2022, 3, 12, 18, 21, 9)
     assert adif.program_id == "WSJT-X"
 
+    assert len(adif.records) == 3
+    assert adif.records[0]["call"] == "NU6V"
+
 
 @pytest.mark.parametrize(
     "spec,expected",
