@@ -5,8 +5,6 @@ Reference: https://www.adif.org/adif
 Description of the file format: http://www.adif.org/312/ADIF_312.htm#ADI_File_Format
 """
 
-# TODO: Support JMESPath for querying Records: https://jmespath.org/examples.html
-
 from dataclasses import dataclass, field
 from datetime import datetime
 from io import StringIO
@@ -21,6 +19,9 @@ class AdifFile:
     program_id: str = ""
     program_version: str = ""
     records: list["AdifRecord"] = field(default_factory=list)
+
+    # Any text before the first specifier in the header
+    comment: str = ""
 
     @classmethod
     def from_string(cls, contents: str) -> "AdifFile":
@@ -44,8 +45,11 @@ class AdifFile:
         """
         Parse incrementally from a file object
         """
-        # TODO: Store everything before the first specifier as a file comment
         adif_file = cls()
+
+        # Read everything before the first specifier as a comment
+        adif_file.comment = read_until(f, "<")[:-1].strip()
+        f.seek(f.tell() - 1)
 
         # Read the header, until we reach an <eoh>
         at_end = False
@@ -144,25 +148,24 @@ class AdifSpecifier:
         """
         Read the next specifier from the file. Will advance the position in the file.
         """
-        buf = ""
-
-        # Seek until we hit a "<"
-        char = f.read(1)
-        while char != "<":
-            if char == "":
-                raise ValueError("No specifier found")
-            char = f.read(1)
-
-        # include the "<" in our output
-        buf += char
-
-        # read until we hit a ">"
-        char = f.read(1)
-        while char != ">":
-            if char == "":
-                raise ValueError("Found start of specifier, but no end")
-            buf += char
-            char = f.read(1)
-        buf += char
-
+        read_until(f, "<")
+        buf = "<" + read_until(f, ">")
         return cls.parse(buf)
+
+
+def read_until(f: TextIO, char: str) -> str:
+    """
+    Returns the text from the current position in the file up to and including the given
+    char. If we hit the end of the file before finding our character, a ValueError is
+    raised.
+    """
+    buf = ""
+
+    cur = ""
+    while cur != char:
+        cur = f.read(1)
+        buf += cur
+        if cur == "":
+            raise ValueError(f"Hit end of file before finding '{char}'")
+
+    return buf

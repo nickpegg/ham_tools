@@ -5,7 +5,7 @@ from typing import Optional, Type
 
 import pytest
 
-from ham_tools.adif import AdifFile, AdifSpecifier
+from ham_tools.adif import AdifFile, AdifSpecifier, read_until
 
 
 def test_load_file() -> None:
@@ -17,6 +17,7 @@ def test_load_file() -> None:
     assert adif.version == "3.1.1"
     assert adif.created == datetime(2022, 3, 12, 18, 21, 9)
     assert adif.program_id == "WSJT-X"
+    assert adif.comment == "ADIF Export"
 
     assert len(adif.records) == 3
     assert adif.records[0]["call"] == "NU6V"
@@ -59,3 +60,11 @@ def test_read_next_specifier(
     else:
         with pytest.raises(error):
             AdifSpecifier.read_next(StringIO(buf))
+
+
+def test_read_until() -> None:
+    assert read_until(StringIO("foo <bar> baz"), "<") == "foo <"
+    with pytest.raises(ValueError):
+        assert read_until(StringIO("foo lol"), "<") == "foo lol"
+    with pytest.raises(ValueError):
+        assert read_until(StringIO(""), "<") == ""
