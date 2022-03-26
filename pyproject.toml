@@ -8,6 +8,7 @@ license = "MIT"
 [tool.poetry.scripts]
 ft991a = 'ham_tools.cli.ft991a:main'
 cat_shell = 'ham_tools.cli.cat_shell:main'
+ft991a_noise_watch = 'ham_tools.cli.noise_watch:main'
 
 [tool.poetry.dependencies]
 python = ">=3.8.0,<4"
