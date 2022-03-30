@@ -8,6 +8,9 @@ script easily enough to program memories on this radio via CAT.
 
 * `ft991a` - Tool to read/write channel memory and settings to a FT-991a over the CAT serial protocol
 * `cat_shell` - REPL shell for your radio. Type in a CAT command, and it'll print the response
+* `rigctl_meters` - Show meters from the radio, read from rigctld - input signal
+  strength, ALC, SWR, and output RF power. Saves you from having to flip between the
+various meters on the radio.
 
 # Installation
 ```
