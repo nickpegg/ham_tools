@@ -18,7 +18,6 @@ METERS = [
     ("ALC", 0, 1, ""),
     ("SWR", 1, 5, ""),
     ("RFPOWER_METER_WATTS", 0, 100, "W"),
-    ("KEYER", 0, 1, "W"),
 ]
 
 
