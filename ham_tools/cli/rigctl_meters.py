@@ -16,7 +16,7 @@ METERS = [
     # name, min value, max value, unit
     ("STRENGTH", -54, 60, "dB"),
     ("ALC", 0, 1, ""),
-    ("SWR", 0, 3, ""),
+    ("SWR", 1, 5, ""),
     ("RFPOWER_METER_WATTS", 0, 100, "W"),
     ("KEYER", 0, 1, "W"),
 ]
