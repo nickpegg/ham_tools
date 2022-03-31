@@ -39,7 +39,8 @@ ft991a write memory
 - [x] Read/write CTCSS tones and DCS codes along with memory
 - [x] read/write memory to/from CSV
 - [x] Add memory writing to CLI
-- [ ] Menu settings read/write - tough because types are so different between settings
+- [ ] (ft991a) Menu settings read/write - tough because types are so different between settings
+- [ ] (rigctl_meters) Make meter value red when over limit
 
 
 ## Refactoring

@@ -3,7 +3,6 @@ Display meters from rigctl
 
 Assumes rigctld is listening on localhost
 """
-# TODO: Make meter value red when over limit
 
 import socket
 import time
