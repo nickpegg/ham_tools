@@ -3,11 +3,14 @@ Display meters from rigctl
 
 Assumes rigctld is listening on localhost
 """
+# TODO: Make meter value red when over limit
 
 import socket
 import time
 
 RIGCTLD_PORT = 4532
+
+# Note: It usually takes 0.1 - 0.27 seconds to read four meters
 INTERVAL_S = 0.5
 
 # available meters can be found with the command:
@@ -27,6 +30,7 @@ def main() -> None:
 
     while True:
         results = []
+        start = time.time()
         for meter, min_val, max_val, unit in METERS:
             sock.send(f"\\get_level {meter}\n".encode())
             raw_val = float(sock.recvmsg(32)[0].strip())
@@ -34,9 +38,14 @@ def main() -> None:
             # Re-scale the value from original range to 0 to 100
             val = int((raw_val - min_val) / (max_val - min_val) * 100)
             results.append((meter, raw_val, val, unit))
+        end = time.time()
 
         print_meters(results)
-        time.sleep(INTERVAL_S)
+
+        to_sleep = INTERVAL_S - (end - start)
+        if to_sleep < 0:
+            to_sleep = 0
+        time.sleep(to_sleep)
 
 
 def print_meters(meters: list[tuple[str, float, int, str]]) -> None:
