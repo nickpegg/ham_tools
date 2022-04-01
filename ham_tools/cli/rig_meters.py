@@ -6,21 +6,30 @@ Assumes rigctld is listening on localhost
 
 import socket
 import time
+from dataclasses import dataclass
 
 RIGCTLD_PORT = 4532
 
 # Note: It usually takes 0.1 - 0.27 seconds to read four meters
 INTERVAL_S = 0.5
 
+
+@dataclass
+class Meter:
+    name: str
+    min_val: float
+    max_val: float
+    unit: str
+
+
 # available meters can be found with the command:
 # rigctl -r localhost get_level \?
-METERS = [
-    # name, min value, max value, unit
-    ("STRENGTH", -54, 60, "dB"),
-    ("ALC", 0.05, 0.6, ""),
-    ("SWR", 1, 3, ""),
-    ("RFPOWER_METER_WATTS", 0, 100, "W"),
-]
+METERS = {
+    "STRENGTH": Meter("STRENGTH", -54, 60, "dB"),
+    "ALC": Meter("ALC", 0.05, 0.6, ""),
+    "SWR": Meter("SWR", 1, 3, ""),
+    "RFPOWER_METER_WATTS": Meter("RFPOWER_METER_WATTS", 0, 100, "W"),
+}
 
 
 def main() -> None:
@@ -30,13 +39,13 @@ def main() -> None:
     while True:
         results = []
         start = time.time()
-        for meter, min_val, max_val, unit in METERS:
-            sock.send(f"\\get_level {meter}\n".encode())
+        for meter in METERS.values():
+            sock.send(f"\\get_level {meter.name}\n".encode())
             raw_val = float(sock.recvmsg(32)[0].strip())
 
             # Re-scale the value from original range to 0 to 100
-            val = int((raw_val - min_val) / (max_val - min_val) * 100)
-            results.append((meter, raw_val, val, unit))
+            val = int((raw_val - meter.min_val) / (meter.max_val - meter.min_val) * 100)
+            results.append((meter, raw_val, val))
         end = time.time()
 
         print_meters(results)
@@ -47,18 +56,24 @@ def main() -> None:
         time.sleep(to_sleep)
 
 
-def print_meters(meters: list[tuple[str, float, int, str]]) -> None:
+def print_meters(results: list[tuple[Meter, float, int]]) -> None:
     print("\033[2J")  # clear screen
     print("\033[0;0H")  # move cursor to 0,0
 
-    for name, raw_val, val, unit in meters:
+    for meter, raw_val, val in results:
         if val < 0:
             val = 0
         elif val > 100:
             val = 100
         val = int(val / 2)
-        print(name)
-        print("[" + "#" * val + " " * (50 - val) + f"] {raw_val} {unit}")
+        print(meter.name)
+
+        meter_str = "["
+        meter_str += "#" * val
+        meter_str += " " * (50 - val)
+        meter_str += f"] {raw_val} "
+        meter_str += meter.unit
+        print(meter_str)
 
 
 if __name__ == "__main__":
