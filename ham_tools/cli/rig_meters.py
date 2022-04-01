@@ -8,7 +8,8 @@ import socket
 import time
 from dataclasses import dataclass
 
-from colorama import Fore, Style
+from colorama import Fore, Style, Cursor
+from colorama.ansi import clear_screen
 
 RIGCTLD_PORT = 4532
 
@@ -59,8 +60,8 @@ def main() -> None:
 
 
 def print_meters(results: list[tuple[Meter, float, int]]) -> None:
-    print("\033[2J")  # clear screen
-    print("\033[0;0H")  # move cursor to 0,0
+    print(clear_screen())  # clear screen
+    print(Cursor.POS())  # move cursor to 0,0
 
     for meter, raw_val, val in results:
         if val < 0:
