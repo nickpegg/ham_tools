@@ -15,3 +15,6 @@ tests:
 
 integration:
 	poetry run pytest -vv
+
+test-watch:
+	find . -name '*py' -or -name 'poetry.lock' | entr -r -c make tests
