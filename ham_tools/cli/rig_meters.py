@@ -8,6 +8,8 @@ import socket
 import time
 from dataclasses import dataclass
 
+from colorama import Fore, Style
+
 RIGCTLD_PORT = 4532
 
 # Note: It usually takes 0.1 - 0.27 seconds to read four meters
@@ -71,8 +73,15 @@ def print_meters(results: list[tuple[Meter, float, int]]) -> None:
         meter_str = "["
         meter_str += "#" * val
         meter_str += " " * (50 - val)
-        meter_str += f"] {raw_val} "
-        meter_str += meter.unit
+        meter_str += "] "
+
+        # Make the meter value red if it's over the max val, e.g. a SWR too high
+        if raw_val >= meter.max_val:
+            meter_str += Fore.RED
+
+        meter_str += f"{raw_val} "
+        meter_str += Style.RESET_ALL
+        meter_str += f" {meter.unit}"
         print(meter_str)
 
 
