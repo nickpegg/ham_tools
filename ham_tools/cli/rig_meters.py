@@ -8,13 +8,15 @@ import socket
 import time
 from dataclasses import dataclass
 
-from colorama import Fore, Style, Cursor
+from colorama import Cursor, Fore, Style
 from colorama.ansi import clear_screen
 
 RIGCTLD_PORT = 4532
 
 # Note: It usually takes 0.1 - 0.27 seconds to read four meters
 INTERVAL_S = 0.5
+
+AVERAGE_SAMPLES = 4
 
 
 @dataclass
@@ -39,6 +41,7 @@ def main() -> None:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(("localhost", RIGCTLD_PORT))
 
+    samples: dict[str, list[float]] = {name: [] for name in METERS.keys()}
     while True:
         results = []
         start = time.time()
@@ -46,9 +49,16 @@ def main() -> None:
             sock.send(f"\\get_level {meter.name}\n".encode())
             raw_val = float(sock.recvmsg(32)[0].strip())
 
+            # Average the value over the last samples
+            samples[meter.name].append(raw_val)
+            if len(samples[meter.name]) > AVERAGE_SAMPLES:
+                samples[meter.name].pop(0)
+            avg_val = sum(samples[meter.name]) / len(samples[meter.name])
+
             # Re-scale the value from original range to 0 to 100
             val = int((raw_val - meter.min_val) / (meter.max_val - meter.min_val) * 100)
-            results.append((meter, raw_val, val))
+
+            results.append((meter, avg_val, val))
         end = time.time()
 
         print_meters(results)
@@ -80,7 +90,7 @@ def print_meters(results: list[tuple[Meter, float, int]]) -> None:
         if raw_val >= meter.max_val:
             meter_str += Fore.RED
 
-        meter_str += f"{raw_val} "
+        meter_str += f"{raw_val:0.2f}"
         meter_str += Style.RESET_ALL
         meter_str += f" {meter.unit}"
         print(meter_str)
