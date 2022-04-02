@@ -190,6 +190,8 @@ class AdifRecord:
     # Raw fields, as a dict
     _fields: dict[str, str] = field(default_factory=dict)
 
+    # TODO: get rid of string fields, allow access to _fields, turn date/time attrs into
+    # functions which return date/time objects
     call: str       = field(init=False)
     band: Band    = field(init=False)
     freq_mhz: str   = field(init=False)
