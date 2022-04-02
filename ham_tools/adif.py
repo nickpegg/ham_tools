@@ -6,8 +6,9 @@ Description of the file format: http://www.adif.org/312/ADIF_312.htm#ADI_File_Fo
 """
 
 import re
+from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 from io import StringIO
 from pathlib import Path
@@ -86,19 +87,55 @@ class AdifFile:
                 record[spec.field_name] = f.read(spec.length)
         return adif_file
 
-    def merge(other: "AdifFile", time_match_min: int = 30) -> None:
+    def merge(self, other: "AdifFile", time_match_min: int = 15) -> None:
         """
         Merge another ADIF file into this one, merging any duplicate records.
 
-        A record is considered a duplicate of another if they match callsign, mode, band,
-        and are within a certain time window of each other. This time window is controlled
-        by `time_match_min`.
+        A record is considered a duplicate of another if they match callsign, mode,
+        band, and are within a certain time window of each other. This time window is
+        controlled by `time_match_min`.
 
         Args:
             time_match_min: The time window to match records, in minutes.
         """
-        # TODO
-        pass
+        # First, bucket QSOs from both files by date fields we match on, so comparison
+        # is faster
+        my_buckets = defaultdict(list)
+        other_buckets = defaultdict(list)
+
+        for record in self.records:
+            my_buckets[record._match_key()].append(record)
+        for record in other.records:
+            other_buckets[record._match_key()].append(record)
+
+        # For each date, merge any QSOs which are close enough to each other. If the
+        # other record has no match, just append it to ours.
+        for k, other_records in other_buckets.items():
+            if k not in my_buckets:
+                self.records.extend(other_records)
+                continue
+
+            for my_record in my_buckets[k]:
+                for other_record in other_records:
+                    if other_record.datetime is None or my_record.datetime is None:
+                        # Can't compare missing times, skip
+                        continue
+
+                    min_time = my_record.datetime - timedelta(minutes=time_match_min)
+                    max_time = my_record.datetime - timedelta(minutes=time_match_min)
+
+                    if (
+                        other_record.datetime <= max_time
+                        and other_record.datetime >= min_time
+                    ):
+                        # We have a match!
+                        my_record.merge(other_record)
+                    else:
+                        # No match, append other record to our list
+                        self.records.append(other_record)
+
+        # Sort all QSOs in this file by (date, time_on) ascending
+        self.records = sorted(self.records, key=lambda r: (r.qso_date, r.time_on))
 
 
 @dataclass
@@ -151,6 +188,18 @@ class AdifRecord:
         else:
             return None
 
+    def _match_key(self) -> str:
+        """
+        Returns a string suitable as a dict key for telling if two QSOs likely match.
+        You need to also separately check that the times match up in addition.
+        """
+        parts = [
+            self.fields.get("callsign", "").upper(),
+            self.fields.get("band", "").lower(),
+            self.fields.get("mode", "").upper(),
+        ]
+        return "-".join(parts)
+
     # Accessor methods which parse fields into Python-native types, e.g. dates and times
     @property
     def qso_date(self) -> Optional[date]:
@@ -163,6 +212,21 @@ class AdifRecord:
     @property
     def time_off(self) -> Optional[time]:
         return self._maybe_parse_time("time_on")
+
+    @property
+    def datetime(self) -> Optional[datetime]:
+        """
+        Returns a datetime based on the qso_date and the time_on. Returns None if either
+        of those are None.
+        """
+        d = self.qso_date
+        t = self.time_on
+        if d is None or t is None:
+            return None
+
+        return datetime(
+            d.year, d.month, d.day, t.hour, t.minute, t.second, t.microsecond
+        )
 
 
 @dataclass
