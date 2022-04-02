@@ -13,13 +13,15 @@ from io import StringIO
 from pathlib import Path
 from typing import Optional, TextIO, Union
 
+from ham_tools.version import VERSION
+
 
 @dataclass
 class AdifFile:
-    version: str = ""
+    version: str = "3.1.2"
     created: Optional[datetime] = None
-    program_id: str = ""
-    program_version: str = ""
+    program_id: str = "N7PGG ham_tools"
+    program_version: str = VERSION
     records: list["AdifRecord"] = field(default_factory=list)
 
     # Any text before the first specifier in the header
