@@ -151,16 +151,17 @@ def test_parse_time(given: str, expected: Union[time, Type[Exception]]) -> None:
     else:
         assert False, f"Unexpected expected: {expected}"
 
-
 @pytest.mark.parametrize(
     "given, expected",
     [
         (
-            AdifRecord(fields={"callsign": "n0foo", "band": "10m", "mode": "ssb"}),
-            "N0FOO-10m-SSB",
+            AdifRecord(
+                fields={"callsign": "n0foo", "band": "10m", "mode": "ssb", "qso_date": "20220401"}
+            ),
+            "N0FOO-10m-SSB-20220401"
         ),
-        (AdifRecord(fields={"callsign": "n0foo", "mode": "ssb"}), "N0FOO--SSB"),
-        (AdifRecord(), "--"),
+        (AdifRecord(fields={"callsign": "n0foo", "mode": "ssb"}), "N0FOO--SSB-"),
+        (AdifRecord(), "---"),
     ],
 )
 def test_record_match_key(given: AdifRecord, expected: str) -> None:

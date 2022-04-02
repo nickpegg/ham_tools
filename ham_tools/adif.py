@@ -87,6 +87,8 @@ class AdifFile:
                 record[spec.field_name] = f.read(spec.length)
         return adif_file
 
+    # TODO: output methods - to string, to file
+
     def merge(self, other: "AdifFile", time_match_min: int = 15) -> None:
         """
         Merge another ADIF file into this one, merging any duplicate records.
@@ -117,13 +119,15 @@ class AdifFile:
 
             for my_record in my_buckets[k]:
                 for other_record in other_records:
-                    if other_record.datetime is None or my_record.datetime is None:
+                    if other_record.time_on == my_record.time_on:
+                        my_record.merge(other_record)
+                        continue
+                    elif other_record.datetime is None or my_record.datetime is None:
                         # Can't compare missing times, skip
                         continue
 
                     min_time = my_record.datetime - timedelta(minutes=time_match_min)
                     max_time = my_record.datetime - timedelta(minutes=time_match_min)
-
                     if (
                         other_record.datetime <= max_time
                         and other_record.datetime >= min_time
@@ -197,6 +201,7 @@ class AdifRecord:
             self.fields.get("callsign", "").upper(),
             self.fields.get("band", "").lower(),
             self.fields.get("mode", "").upper(),
+            self.fields.get("qso_date", ""),
         ]
         return "-".join(parts)
 
