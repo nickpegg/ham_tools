@@ -14,92 +14,6 @@ from pathlib import Path
 from typing import Optional, TextIO, Union
 
 
-# Enums
-class Band(Enum):
-    _2190M = "2190m"
-    _630M = "630m"
-    _560M = "560m"
-    _160M = "160m"
-    _80M = "80m"
-    _60M = "60m"
-    _40M = "40m"
-    _30M = "30m"
-    _20M = "20m"
-    _17M = "17m"
-    _15M = "15m"
-    _12M = "12m"
-    _10M = "10m"
-    _8M = "8m"
-    _6M = "6m"
-    _5M = "5m"
-    _4M = "4m"
-    _2M = "2m"
-    _1_25M = "1.25m"
-    _70CM = "70cm"
-    _33CM = "33cm"
-    _23CM = "23cm"
-    _13CM = "13cm"
-    _9CM = "9cm"
-    _6CM = "6cm"
-    _3CM = "3cm"
-    _1_25CM = "1.25cm"
-    _6MM = "6mm"
-    _4MM = "4mm"
-    _2_5MM = "2.5mm"
-    _2MM = "2mm"
-    _1MM = "1mm"
-
-
-class Mode(Enum):
-    AM = "AM"
-    ARDOP = "ARDOP"
-    ATV = "ATV"
-    C4FM = "C4FM"
-    CHIP = "CHIP"
-    CLO = "CLO"
-    CONTESTI = "CONTESTI"
-    CW = "CW"
-    DIGITALVOICE = "DIGITALVOICE"
-    DOMINO = "DOMINO"
-    DSTAR = "DSTAR"
-    FAX = "FAX"
-    FM = "FM"
-    FSK441 = "FSK441"
-    FT8 = "FT8"
-    HELL = "HELL"
-    ISCAT = "ISCAT"
-    JT4 = "JT4"
-    JT6M = "JT6M"
-    JT9 = "JT9"
-    JT44 = "JT44"
-    JT65 = "JT65"
-    MFSK = "MFSK"
-    MSK144 = "MSK144"
-    MT63 = "MT63"
-    OLIVIA = "OLIVIA"
-    OPERA = "OPERA"
-    PAC = "PAC"
-    PAX = "PAX"
-    PKT = "PKT"
-    PSK = "PSK"
-    PSK2K = "PSK2K"
-    Q15 = "Q15"
-    QRA64 = "QRA64"
-    ROS = "ROS"
-    RTTY = "RTTY"
-    RTTYM = "RTTYM"
-    SSB = "SSB"
-    SSTV = "SSTV"
-    T10 = "T10"
-    THOR = "THOR"
-    THRB = "THRB"
-    TOR = "TOR"
-    V4 = "V4"
-    VOI = "VOI"
-    WINMOR = "WINMOR"
-    WSPR = "WSPR"
-
-
 @dataclass
 class AdifFile:
     version: str = ""
@@ -164,7 +78,7 @@ class AdifFile:
                 break
 
             if spec.field_name == "eor":
-                adif_file.records.append(AdifRecord(_fields=record))
+                adif_file.records.append(AdifRecord(fields=record))
                 record = {}
             else:
                 record[spec.field_name] = f.read(spec.length)
@@ -188,23 +102,7 @@ class AdifFile:
 @dataclass
 class AdifRecord:
     # Raw fields, as a dict
-    _fields: dict[str, str] = field(default_factory=dict)
-
-    # TODO: get rid of string fields, allow access to _fields, turn date/time attrs into
-    # functions which return date/time objects
-    call: str       = field(init=False)
-    band: Band    = field(init=False)
-    freq_mhz: str   = field(init=False)
-    mode: Mode    = field(init=False)
-    qso_date: date  = field(init=False)
-    time_on: time   = field(init=False)
-    time_off: time  = field(init=False)
-    gridsquare: str = field(init=False)
-    my_gridsquare: str  = field(init=False)
-    tx_pwr: str         = field(init=False)
-    rst_rcvd: str       = field(init=False)
-    rst_sent: str       = field(init=False)
-    comment: str        = field(init=False)
+    fields: dict[str, str] = field(default_factory=dict)
 
     _string_fields = {
         "call",
@@ -217,66 +115,11 @@ class AdifRecord:
         "comment",
     }
 
-    def __post_init__(self) -> None:
-        self._parse_fields()
-
     def __getitem__(self, key: str) -> str:
-        return self._fields[key]
+        return self.fields[key]
 
     def __setitem__(self, key: str, value: str) -> None:
-        self._fields[key] = value
-        self._parse_fields(field=key)
-
-    def __setattr__(self, attr_name: str, value: Union[str, int, date, time, Band, Mode]) -> None:
-        """
-        Intercept attr sets, and update the raw fields dict if we need to
-        """
-        if attr_name in self.__dataclass_fields__.keys():
-            if attr_name in self._string_fields and isinstance(value, str):
-                self._fields[attr_name] = value
-            elif attr_name == "band" and isinstance(value, Band):
-                self._fields[attr_name] = value.value
-            elif attr_name == "mode" and isinstance(value, Mode):
-                self._fields[attr_name] = value.value
-            elif attr_name == "qso_date" and isinstance(value, date):
-                self._fields[attr_name] = value.strftime("%Y%m%d")
-            elif attr_name in {"time_on", "time_off"} and isinstance(value, time):
-                self._fields[attr_name] = value.strftime("%H%M%S")
-        super().__setattr__(attr_name, value)
-
-    def _parse_fields(self, field: str = "") -> None:
-        """
-        Parse out common fields. Errors with parsing are ignored, the field on the class
-        is not set but the value remains in the raw fields dict.
-
-        Args:
-            field: If given, only parse this field
-        """
-        if field != "":
-            to_parse = {field: self._fields[field]}
-        else:
-            to_parse = self._fields
-
-        for field in self._string_fields:
-            if field in to_parse:
-                setattr(self, field, to_parse[field])
-
-        if "band" in to_parse:
-            try:
-                self.band = Band(to_parse["band"].lower())
-            except ValueError:
-                pass
-        if "mode" in to_parse:
-            try:
-                self.mode = Mode(to_parse["mode"].upper())
-            except ValueError:
-                pass
-        if "qso_date" in to_parse:
-            self.qso_date = parse_date(to_parse["qso_date"])
-        if "time_on" in to_parse:
-            self.time_on = parse_time(to_parse["time_on"])
-        if "time_off" in to_parse:
-            self.time_on = parse_time(to_parse["time_off"])
+        self.fields[key] = value
 
     def merge(self, other: "AdifRecord", force_overwrite: bool = False) -> None:
         """
@@ -284,13 +127,40 @@ class AdifRecord:
         replace a field in this record if it is longer (likely better data), or
         force_overwrite is set to True.
         """
-        for k, v in other._fields.items():
-            set_field = k not in self._fields
-            set_field |= len(v) > len(self._fields.get(k, ""))
+        for k, v in other.fields.items():
+            set_field = k not in self.fields
+            set_field |= len(v) > len(self.fields.get(k, ""))
             set_field |= force_overwrite
 
             if set_field:
-                self._fields[k] = v
+                self.fields[k] = v
+
+    def _maybe_parse_date(self, field_name: str) -> Optional[date]:
+        f = self.fields.get(field_name)
+        if f:
+            return parse_date(f)
+        else:
+            return None
+
+    def _maybe_parse_time(self, field_name: str) -> Optional[time]:
+        f = self.fields.get(field_name)
+        if f:
+            return parse_time(f)
+        else:
+            return None
+
+    # Accessor methods which parse fields into Python-native types, e.g. dates and times
+    @property
+    def qso_date(self) -> Optional[date]:
+        return self._maybe_parse_date("qso_date")
+
+    @property
+    def time_on(self) -> Optional[time]:
+        return self._maybe_parse_time("time_on")
+
+    @property
+    def time_off(self) -> Optional[time]:
+        return self._maybe_parse_time("time_on")
 
 
 @dataclass

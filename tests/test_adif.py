@@ -1,11 +1,18 @@
-from datetime import datetime, date, time
+from datetime import date, datetime, time
 from io import StringIO
 from pathlib import Path
 from typing import Optional, Type, Union
 
 import pytest
 
-from ham_tools.adif import AdifFile, AdifRecord, AdifSpecifier, read_until, parse_date, parse_time
+from ham_tools.adif import (
+    AdifFile,
+    AdifRecord,
+    AdifSpecifier,
+    parse_date,
+    parse_time,
+    read_until,
+)
 
 
 def test_load_file() -> None:
@@ -74,30 +81,30 @@ def test_record_merge() -> None:
     base_fields = {"foo": "bar", "bar": "baz"}
 
     # no overwrite, no new fields
-    r1 = AdifRecord(_fields=base_fields.copy())
-    r2 = AdifRecord(_fields={"foo": "x"})
+    r1 = AdifRecord(fields=base_fields.copy())
+    r2 = AdifRecord(fields={"foo": "x"})
     r1.merge(r2)
-    assert r1._fields == base_fields
+    assert r1.fields == base_fields
 
     # no overwrite, new field
-    r1 = AdifRecord(_fields=base_fields.copy())
-    r2 = AdifRecord(_fields={"lol": "wut"})
+    r1 = AdifRecord(fields=base_fields.copy())
+    r2 = AdifRecord(fields={"lol": "wut"})
     r1.merge(r2)
-    assert r1._fields == {
+    assert r1.fields == {
         "foo": "bar",
         "bar": "baz",
         "lol": "wut",
     }
 
     # better data
-    r1 = AdifRecord(_fields=base_fields.copy())
-    r2 = AdifRecord(_fields={"foo": "better data"})
+    r1 = AdifRecord(fields=base_fields.copy())
+    r2 = AdifRecord(fields={"foo": "better data"})
     r1.merge(r2)
     assert r1["foo"] == "better data"
 
     # force_overwrite, worse data
-    r1 = AdifRecord(_fields=base_fields.copy())
-    r2 = AdifRecord(_fields={"foo": "x"})
+    r1 = AdifRecord(fields=base_fields.copy())
+    r2 = AdifRecord(fields={"foo": "x"})
     r1.merge(r2, force_overwrite=True)
     assert r1["foo"] == "x"
 
@@ -124,6 +131,7 @@ def test_parse_date(given: str, expected: Union[date, Type[Exception]]) -> None:
     else:
         assert False, f"Unexpected expected: {expected}"
 
+
 @pytest.mark.parametrize(
     "given,expected",
     [
@@ -142,7 +150,3 @@ def test_parse_time(given: str, expected: Union[time, Type[Exception]]) -> None:
             parse_time(given)
     else:
         assert False, f"Unexpected expected: {expected}"
-
-
-# TODO test AdifRecord_parse_fields
-# TODO test setting of AdifRecord dataclass fields, make sure they get into the dict
