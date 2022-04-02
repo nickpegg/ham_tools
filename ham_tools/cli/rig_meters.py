@@ -56,7 +56,7 @@ def main() -> None:
             avg_val = sum(samples[meter.name]) / len(samples[meter.name])
 
             # Re-scale the value from original range to 0 to 100
-            val = int((raw_val - meter.min_val) / (meter.max_val - meter.min_val) * 100)
+            val = int((avg_val - meter.min_val) / (meter.max_val - meter.min_val) * 100)
 
             results.append((meter, avg_val, val))
         end = time.time()
