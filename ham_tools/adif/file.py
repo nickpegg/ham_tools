@@ -151,7 +151,6 @@ class AdifFile:
         for k, other_records in other_buckets.items():
             if k not in my_buckets:
                 logger.debug(f"{k} not found in my buckets")
-                print(f"{k} not found in my buckets")
                 self.records.extend(other_records)
                 continue
 
