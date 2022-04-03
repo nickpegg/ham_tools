@@ -1,0 +1,18 @@
+ADIF Export
+<adif_ver:5>3.1.1
+<created_timestamp:15>20220312 182109
+<programid:6>WSJT-X
+<programversion:5>2.5.4
+<eoh>
+<call:4>NU6V <gridsquare:4>CM87 <mode:3>FT8 <rst_sent:3>+19 <rst_rcvd:3>+19
+<qso_date:8>20220312 <time_on:6>181945 <qso_date_off:8>20220312 <time_off:6>182045
+<band:3>10m <freq:9>28.074915 <station_callsign:5>N7PGG <my_gridsquare:6>CM87SR
+<tx_pwr:3>10 <comment:14>Howdy neighbor <eor>
+<call:4>KV4T <gridsquare:4>EM63 <mode:3>FT8 <rst_sent:3>-22 <rst_rcvd:3>-18
+<qso_date:8>20220312 <time_on:6>205130 <qso_date_off:8>20220312 <time_off:6>205230
+<band:3>10m <freq:9>28.074800 <station_callsign:5>N7PGG <my_gridsquare:6>CM87SR
+<tx_pwr:3>15 <operator:4>Nick <eor>
+<call:4>W0QU <gridsquare:4>EM48 <mode:3>FT8 <rst_sent:3>-14 <rst_rcvd:3>-05
+<qso_date:8>20220312 <time_on:6>205400 <qso_date_off:8>20220312 <time_off:6>205500
+<band:3>10m <freq:9>28.074800 <station_callsign:5>N7PGG <my_gridsquare:6>CM87SR
+<tx_pwr:3>15 <eor>

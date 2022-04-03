@@ -24,6 +24,7 @@ pytest = "*"
 isort = "*"
 ipython = "*"
 types-colorama = "^0.4.10"
+types-setuptools = "^57.4.11"
 
 [tool.isort]
 profile = "black"
