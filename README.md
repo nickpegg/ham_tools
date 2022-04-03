@@ -32,6 +32,23 @@ ft991a write memory
 ```
 
 
+# Development
+
+After cloning the repo, run `make init` to install all of the dependencies.
+
+The CLI tools are all defined in the `[tool.poetry.scripts]` section in the
+`pyproject.toml` file. You can run each one with `poetry run`, for example:
+`poetry run ft991a -h`.
+
+`make fmt` will run code formatters, `make test` will run the standard suite of
+tests. Just running `make` will run both of these.
+
+There are some integration tests which require a real Yaesu FT-991a to be
+plugged in via USB, these can be ran with `run integration`. You should make
+sure that other programs aren't trying to use the radio at the same time, like
+you should stop rigctl, WSJT-X, etc.
+
+
 # TODO
 
 ## Features
