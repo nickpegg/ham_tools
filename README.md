@@ -42,10 +42,10 @@ ft991a write memory
 - [ ] `ft991a` - Menu settings read/write - tough because types are so different between settings
 - [x] `rig_meters` - Make meter value red when over limit
 
-
-## Refactoring
-
-- [x] Test against various Python versions
-- [x] Make radio functions into a class
-- [x] Separate CLI code from business logic
-- [x] Make CAT shell its own command
+## Log Manager
+- [x] ADIF parser/merger
+- [ ] CLI tool to merge ADIFs and manage a central log
+- [ ] simple web UI for manual logging
+- [ ] Push logs to LOTW
+- [ ] Push logs to ClubLog
+- [ ] Push logs to eQSL
