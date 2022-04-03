@@ -4,12 +4,14 @@ Display meters from rigctl
 Assumes rigctld is listening on localhost
 """
 
+import os
 import socket
+import sys
 import time
 from dataclasses import dataclass
 
 from colorama import Cursor, Fore, Style
-from colorama.ansi import clear_screen
+from colorama.ansi import clear_screen as ansi_clear_screen
 
 RIGCTLD_PORT = 4532
 
@@ -47,7 +49,7 @@ def main() -> None:
         start = time.time()
         for meter in METERS.values():
             sock.send(f"\\get_level {meter.name}\n".encode())
-            raw_val = float(sock.recvmsg(32)[0].strip())
+            raw_val = float(sock.recv(32).strip())
 
             # Average the value over the last samples
             samples[meter.name].append(raw_val)
@@ -70,7 +72,7 @@ def main() -> None:
 
 
 def print_meters(results: list[tuple[Meter, float, int]]) -> None:
-    print(clear_screen())  # clear screen
+    clear_screen()
     print(Cursor.POS())  # move cursor to 0,0
 
     for meter, raw_val, val in results:
@@ -94,6 +96,17 @@ def print_meters(results: list[tuple[Meter, float, int]]) -> None:
         meter_str += Style.RESET_ALL
         meter_str += f" {meter.unit}"
         print(meter_str)
+
+
+def clear_screen() -> None:
+    """
+    Clear the screen in a platform-independent way, since colorama doesn't support win32
+    for this.
+    """
+    if sys.platform == "win32":
+        os.system("cls")
+    else:
+        print(ansi_clear_screen())
 
 
 if __name__ == "__main__":
