@@ -21,6 +21,9 @@ INTERVAL_S = 0.5
 # How many samples to hold on to for calculating the max over the last 1 second
 MAX_SAMPLES = int(2 / INTERVAL_S)
 
+# Width of the meter in characters
+METER_WIDTH = 50
+
 
 @dataclass
 class Meter:
@@ -28,6 +31,13 @@ class Meter:
     min_val: float
     max_val: float
     unit: str
+
+    def scale_value(self, value: float) -> int:
+        """
+        Scale a value from its original range, as defined by the Meter object, to [0, 100]
+        """
+        scaled = (value - self.min_val) / (self.max_val - self.min_val) * 100
+        return int(scaled)
 
 
 # available meters can be found with the command:
@@ -57,11 +67,16 @@ def main() -> None:
             if len(samples[meter.name]) > MAX_SAMPLES:
                 samples[meter.name].pop(0)
             max_val = max(samples[meter.name])
+            results.append(
+                (
+                    meter,
+                    raw_val,
+                    max_val,
+                    meter.scale_value(raw_val),
+                    meter.scale_value(max_val),
+                )
+            )
 
-            # Re-scale the value from original range to 0 to 100
-            val = int((raw_val - meter.min_val) / (meter.max_val - meter.min_val) * 100)
-
-            results.append((meter, raw_val, max_val, val))
         end = time.time()
 
         print_meters(results)
@@ -72,22 +87,31 @@ def main() -> None:
         time.sleep(to_sleep)
 
 
-def print_meters(results: list[tuple[Meter, float, float, int]]) -> None:
+def print_meters(results: list[tuple[Meter, float, float, int, int]]) -> None:
     clear_screen()
     print(Cursor.POS())  # move cursor to 0,0
 
-    for meter, raw_val, max_val, scaled_val in results:
+    for meter, raw_val, max_val, scaled_val, scaled_max in results:
         if scaled_val < 0:
             scaled_val = 0
         elif scaled_val > 100:
             scaled_val = 100
-        scaled_val = int(scaled_val / 2)
+
+        scaling_factor = 100 / METER_WIDTH
+        scaled_val = int(scaled_val / scaling_factor)
+        scaled_max = int(scaled_max / scaling_factor)
         print(meter.name)
 
-        meter_str = "["
-        meter_str += "#" * scaled_val
-        meter_str += " " * (50 - scaled_val)
-        meter_str += "] "
+        inner_meter = ""
+        for i in range(METER_WIDTH):
+            if i == scaled_max and scaled_val < scaled_max:
+                inner_meter += "|"
+            elif i <= scaled_val:
+                inner_meter += "#"
+            else:
+                inner_meter += " "
+
+        meter_str = f"[{inner_meter}] "
 
         # Make the meter value red if it's over the max val, e.g. a SWR too high
         if raw_val >= meter.max_val:
