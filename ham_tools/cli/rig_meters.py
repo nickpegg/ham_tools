@@ -18,8 +18,11 @@ RIGCTLD_PORT = 4532
 # Note: It usually takes 0.1 - 0.27 seconds to read four meters
 INTERVAL_S = 0.5
 
+# Over how many seconds to calculate the max value
+MAX_HOLD_TIME = 2.0
+
 # How many samples to hold on to for calculating the max over the last 1 second
-MAX_SAMPLES = int(2 / INTERVAL_S)
+MAX_SAMPLES = int(MAX_HOLD_TIME / INTERVAL_S)
 
 # Width of the meter in characters
 METER_WIDTH = 50
