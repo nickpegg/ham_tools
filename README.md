@@ -44,7 +44,7 @@ The CLI tools are all defined in the `[tool.poetry.scripts]` section in the
 tests. Just running `make` will run both of these.
 
 There are some integration tests which require a real Yaesu FT-991a to be
-plugged in via USB, these can be ran with `run integration`. You should make
+plugged in via USB, these can be ran with `make integration`. You should make
 sure that other programs aren't trying to use the radio at the same time, like
 you should stop rigctl, WSJT-X, etc.
 
