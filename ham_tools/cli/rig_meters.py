@@ -54,6 +54,8 @@ METERS = {
 
 
 def main() -> None:
+    clear_screen()
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(("localhost", RIGCTLD_PORT))
 
@@ -63,7 +65,10 @@ def main() -> None:
         start = time.time()
         for meter in METERS.values():
             sock.send(f"\\get_level {meter.name}\n".encode())
-            raw_val = float(sock.recv(32).strip())
+            try:
+                raw_val = float(sock.recv(32).strip())
+            except Exception as e:
+                raise RuntimeError(f"Unable to read meters from rigctld: {e}")
 
             # Get the max value over the last samples
             samples[meter.name].append(raw_val)
@@ -91,8 +96,7 @@ def main() -> None:
 
 
 def print_meters(results: list[tuple[Meter, float, float, int, int]]) -> None:
-    clear_screen()
-    print(Cursor.POS())  # move cursor to 0,0
+    lines = []
 
     for meter, raw_val, max_val, scaled_val, scaled_max in results:
         if scaled_val < 0:
@@ -103,7 +107,7 @@ def print_meters(results: list[tuple[Meter, float, float, int, int]]) -> None:
         scaling_factor = 100 / METER_WIDTH
         scaled_val = int(scaled_val / scaling_factor)
         scaled_max = int(scaled_max / scaling_factor)
-        print(meter.name)
+        lines.append(meter.name)
 
         inner_meter = ""
         for i in range(METER_WIDTH):
@@ -129,7 +133,15 @@ def print_meters(results: list[tuple[Meter, float, float, int, int]]) -> None:
             meter_str += f" {meter.unit}"
         meter_str += ")"
 
-        print(meter_str)
+        # Add a few spaces at the end to clear out any junk, like if our meter_str line
+        # got shorter from shorter values
+        meter_str += 5 * " "
+
+        lines.append(meter_str)
+
+    print(Cursor.POS())  # move cursor to 0,0
+    for line in lines:
+        print(line)
 
 
 def clear_screen() -> None:
