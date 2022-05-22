@@ -5,6 +5,7 @@ Assumes rigctld is listening on localhost
 """
 
 import os
+import shutil
 import socket
 import sys
 import time
@@ -54,15 +55,21 @@ METERS = {
 
 
 def main() -> None:
-    clear_screen()
-
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(("localhost", RIGCTLD_PORT))
 
     samples: dict[str, list[float]] = {name: [] for name in METERS.keys()}
+    last_term_size = None
     while True:
         results = []
         start = time.time()
+
+        # Clear the screen on startup and if the terminal size changes
+        term_size = shutil.get_terminal_size()
+        if term_size != last_term_size:
+            clear_screen()
+            last_term_size = term_size
+
         for meter in METERS.values():
             sock.send(f"\\get_level {meter.name}\n".encode())
             try:
