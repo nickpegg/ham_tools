@@ -95,7 +95,7 @@ class AdifRecord:
 
     @property
     def time_off(self) -> Optional[time]:
-        return self._maybe_parse_time("time_on")
+        return self._maybe_parse_time("time_off")
 
     @property
     def datetime(self) -> Optional[datetime]:
