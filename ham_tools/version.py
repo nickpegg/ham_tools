@@ -1,3 +1,3 @@
-import pkg_resources
+import importlib.metadata
 
-VERSION = pkg_resources.get_distribution("ham_tools").version
+VERSION = importlib.metadata.version("ham_tools")
